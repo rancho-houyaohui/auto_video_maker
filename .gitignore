@@ -1,0 +1,5 @@
+# 忽略编译生成目录和静态资源文件
+assets
+outputs
+temp_web
+
