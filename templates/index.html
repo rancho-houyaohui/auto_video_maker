@@ -73,6 +73,9 @@
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#script-pane" id="tab-script">📝 分镜精修</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#resource-pane">📦 资源库</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#history-pane" onclick="loadHistory()">📜 历史记录</button></li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#upload-pane" onclick="checkLoginStatus()">🚀 发布中心</button>
+        </li>
     </ul>
 
     <div class="tab-content">
@@ -103,11 +106,11 @@
                             </div>
                             <div class="col-4">
                                 <label class="form-label small">句间停顿(秒)</label>
-                                <input type="number" id="audioPadding" class="form-control" value="0.2" step="0.1">
+                                <input type="number" id="audioPadding" class="form-control" value="0" step="0.1">
                             </div>
                             <div class="col-4">
                                 <label class="form-label small">TTS语速(%)</label>
-                                <input type="number" id="ttsRate" class="form-control" value="15" step="5" placeholder="15">
+                                <input type="number" id="ttsRate" class="form-control" value="10" step="5" placeholder="15">
                             </div>
                         </div>
                         <div class="mt-3">
@@ -163,12 +166,14 @@
 
             <div id="editorArea" style="display:none;">
                 <div class="d-flex justify-content-between align-items-center mb-3 sticky-top bg-light py-2 shadow-sm px-3 rounded border" style="z-index:10; top:0;">
-                    <div class="d-flex align-items-center gap-3">
-                        <h5 class="m-0">分镜列表 <span class="badge bg-secondary" id="sceneCount">0</span></h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-secondary" id="sceneCount">0</span>
                         <div class="btn-group">
                             <button onclick="applyGlobalVoice()" class="btn btn-sm btn-outline-secondary">应用全局语音</button>
                             <button onclick="applyGlobalPadding()" class="btn btn-sm btn-outline-secondary">应用全局停顿</button>
                         </div>
+                        <!-- [新增] 手动保存按钮 -->
+                        <button onclick="manualSave()" class="btn btn-sm btn-outline-primary" id="btnSaveProject" style="display:none;">💾 保存进度</button>
                     </div>
                     <button onclick="openRenderModal()" class="btn btn-success fw-bold px-4">🚀 开始渲染</button>
                 </div>
@@ -291,6 +296,64 @@
             </div>
             <div id="historyContainer" class="row g-4"></div>
         </div>
+
+        <!-- 6. 发布 -->
+        <div class="tab-pane fade" id="upload-pane">
+            <div class="row">
+                <!-- 左侧：账号状态 -->
+                <div class="col-md-4">
+                    <div class="card shadow-sm mb-3">
+                        <div class="card-header bg-white fw-bold">📡 账号连接状态</div>
+                        <div class="list-group list-group-flush" id="accountList">
+                            <!-- 动态生成 -->
+                            <div class="text-center py-3">加载中...</div>
+                        </div>
+                    </div>
+                    <div class="alert alert-info small">
+                        ℹ️ 点击“连接”会弹出浏览器窗口，请在窗口中扫码登录。登录成功后关闭窗口即可。
+                    </div>
+                </div>
+                
+                <!-- 右侧：发布控制 -->
+                <div class="col-md-8">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-white fw-bold">📤 发布视频</div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">选择视频</label>
+                                <select id="uploadVideoSelect" class="form-select" onchange="previewUploadVideo()">
+                                    <option value="">-- 请选择已生成的视频 --</option>
+                                    <!-- JS 动态加载历史视频 -->
+                                </select>
+                            </div>
+                            
+                            <!-- 预览小窗 -->
+                            <div class="mb-3 text-center bg-black rounded" style="min-height: 150px; display:none;" id="uploadPreviewBox">
+                                <video id="uploadPreviewPlayer" controls style="height: 200px; max-width: 100%"></video>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">视频标题</label>
+                                <input type="text" id="uploadTitle" class="form-control" placeholder="输入吸睛标题...">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">标签 (逗号分隔)</label>
+                                <input type="text" id="uploadTags" class="form-control" placeholder="AI, 科技, 创业">
+                            </div>
+                            
+                            <label class="form-label">发布到平台</label>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button class="btn btn-outline-dark" onclick="doPublish('douyin')">抖音</button>
+                                <button class="btn btn-outline-warning" onclick="doPublish('bilibili')">Bilibili</button>
+                                <button class="btn btn-outline-danger" onclick="doPublish('xiaohongshu')">小红书</button>
+                                <button class="btn btn-outline-success" onclick="doPublish('video_number')">视频号</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -379,7 +442,81 @@
         root.style.setProperty('--emp-outline', getVal('empOutline'));
         if(globalScenes.length > 0) globalScenes.forEach((_, idx) => updatePreview(idx));
     }
-    window.addEventListener('DOMContentLoaded', updateStylePreview);
+    // --- 初始化逻辑 ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const CURRENT_PROJECT_ID = urlParams.get('project_id');
+
+    window.addEventListener('DOMContentLoaded', async () => {
+        updateStylePreview();
+        
+        // 如果是编辑已有项目
+        if (CURRENT_PROJECT_ID) {
+            console.log("正在加载项目:", CURRENT_PROJECT_ID);
+            
+            // UI 提示
+            const header = document.querySelector('h3');
+            header.innerHTML += ` <span class="badge bg-info text-dark fs-6" style="vertical-align: middle;">正在编辑项目: ${CURRENT_PROJECT_ID}</span>`;
+            
+            try {
+                const res = await fetch(`/api/projects/${CURRENT_PROJECT_ID}`);
+                const d = await res.json();
+                
+                if(d.status === 'ok') {
+                    const p = d.data;
+                    
+                    // 1. 回填文案
+                    if (p.script) {
+                        document.getElementById('scriptInput').value = p.script;
+                    }
+                    
+                    // 2. 回填分镜数据 (核心修复)
+                    if (p.scenes_data && Array.isArray(p.scenes_data) && p.scenes_data.length > 0) {
+                        globalScenes = p.scenes_data;
+                        console.log("恢复分镜数据:", globalScenes.length, "条");
+                        
+                        // 重新渲染列表
+                        renderScenes();
+                        
+                        // 显示编辑器区域
+                        document.getElementById('editorArea').style.display = 'block';
+                        
+                        // 自动切换到分镜 Tab
+                        const tabEl = document.querySelector('#tab-script');
+                        if (tabEl) bootstrap.Tab.getOrCreateInstance(tabEl).show();
+                        
+                        // 恢复其他配置 (如果有保存的话，目前 project DB 结构暂未存配置，可后续扩展)
+                    }
+                } else {
+                    alert("项目加载失败: " + d.msg);
+                }
+            } catch(e) { 
+                console.error("Project load error", e); 
+                alert("无法连接服务器获取项目数据");
+            }
+        }
+    });
+
+    // 页面加载时判断是否显示保存按钮
+    if (CURRENT_PROJECT_ID) {
+        document.getElementById('btnSaveProject').style.display = 'inline-block';
+    }
+
+    async function manualSave() {
+        const btn = document.getElementById('btnSaveProject');
+        const oldText = btn.innerText;
+        btn.innerText = "Saving...";
+        btn.disabled = true;
+        
+        await autoSaveProject();
+        
+        setTimeout(() => {
+            btn.innerText = "✅ 已保存";
+            setTimeout(() => {
+                btn.innerText = oldText;
+                btn.disabled = false;
+            }, 1000);
+        }, 500);
+    }
 
     // --- 音效/音乐播放 ---
     function playSfx(filename) {
@@ -484,6 +621,11 @@
             // 切换到 Tab
             const tabEl = document.querySelector('#tab-script');
             if (tabEl) bootstrap.Tab.getOrCreateInstance(tabEl).show();
+
+            // 【新增】分析完成后，自动保存分镜到项目
+            if (CURRENT_PROJECT_ID) {
+                await autoSaveProject();
+            }
             
         } catch(e) {
             alert("API Error: " + e);
@@ -1056,6 +1198,11 @@
             bgm_file: document.getElementById('bgmSelect').value, bgm_volume: parseFloat(document.getElementById('bgmVol').value),
             audio_padding: parseFloat(document.getElementById('audioPadding').value), tts_rate: (rateVal>=0?"+":"")+rateVal+"%", subtitle_style: style
         };
+        // 【新增】渲染开始前，保存当前分镜状态
+        if (CURRENT_PROJECT_ID) {
+            await autoSaveProject(); 
+        }
+
         try { await fetch('/api/render', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) }); }
         catch(e) { appendLog("API Error: "+e, "red"); }
     }
@@ -1068,7 +1215,239 @@
         const uniqueUrl = url + "?t=" + new Date().getTime();
         p.src = uniqueUrl; p.load();
         document.getElementById('finalDownloadBtn').href = uniqueUrl;
+
+        // 【修改】使用新的 autoSaveProject 函数更新状态和视频路径
+        if (CURRENT_PROJECT_ID) {
+            fetch(`/api/projects/${CURRENT_PROJECT_ID}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    video_path: url,      // 保存视频 URL
+                    status: 'generated',  // 更新状态
+                    scenes_data: globalScenes // 再次确认保存分镜，防止渲染期间有修改
+                })
+            }).then(res => console.log("项目状态已更新: Generated"));
+        }
     }
+
+    // --- 项目自动保存逻辑 ---
+    async function autoSaveProject(status = null) {
+        if (!CURRENT_PROJECT_ID) return; // 如果不是项目模式，不保存
+        
+        const payload = {
+            script: document.getElementById('scriptInput').value,
+            scenes_data: globalScenes // 保存当前分镜状态
+        };
+        
+        // 如果传入了状态变更 (如 'generated')，则更新状态
+        if (status) {
+            payload.status = status;
+        }
+
+        try {
+            await fetch(`/api/projects/${CURRENT_PROJECT_ID}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            console.log("项目自动保存成功");
+        } catch(e) {
+            console.error("自动保存失败:", e);
+        }
+    }
+
+    // / --- 发布中心逻辑 ---/
+    
+    // 检查登录状态
+    async function checkLoginStatus() {
+        const res = await fetch('/api/upload/status');
+        const data = await res.json();
+        const list = document.getElementById('accountList');
+        list.innerHTML = '';
+        
+        const names = {
+            "douyin": "抖音 (Douyin)",
+            "bilibili": "哔哩哔哩 (Bilibili)",
+            "video_number": "微信视频号",
+            "xiaohongshu": "小红书",
+            "kuaishou": "快手"
+        };
+        
+        for (const [key, isLogged] of Object.entries(data.data)) {
+            const statusHtml = isLogged 
+                ? `<span class="badge bg-success">已连接</span>` 
+                : `<button class="btn btn-sm btn-outline-primary" onclick="loginPlatform('${key}')">连接</button>`;
+            
+            const item = `
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <span>${names[key] || key}</span>
+                <div>${statusHtml}</div>
+            </div>`;
+            list.insertAdjacentHTML('beforeend', item);
+        }
+        
+        // 同时加载视频列表供选择
+        loadUploadVideoOptions();
+    }
+    
+    async function loginPlatform(platform) {
+        // 找到对应的按钮并改变状态
+        // 这里需要重新渲染列表比较简单
+        
+        alert("浏览器窗口即将弹出。\n请扫码登录，成功后【手动关闭窗口】以保存状态。");
+        
+        try {
+            const res = await fetch('/api/upload/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({platform})
+            });
+            const d = await res.json();
+            
+            if(d.status === 'ok') {
+                alert("✅ 登录成功！状态已更新。");
+                // 刷新列表显示“已连接”
+                checkLoginStatus(); 
+            } else {
+                alert("登录失败: " + d.msg);
+            }
+        } catch(e) { 
+            alert("API Error: " + e); 
+        }
+    }
+    
+    // 加载可发布的项目 (状态为 generated)
+    async function loadUploadVideoOptions() {
+        const res = await fetch('/api/projects');
+        const d = await res.json();
+        const select = document.getElementById('uploadVideoSelect');
+        select.innerHTML = '<option value="">-- 请选择待发布项目 --</option>';
+        
+        // 过滤出 status == 'generated' 或 'published' (支持重发)
+        const validProjects = d.data.filter(p => p.status === 'generated' || p.status === 'published');
+        
+        if (validProjects.length === 0) {
+            select.innerHTML = '<option value="">(暂无已生成的项目)</option>';
+            return;
+        }
+
+        validProjects.forEach(p => {
+            const opt = document.createElement('option');
+            // Value 存 Project ID，而不是视频路径
+            opt.value = p.id; 
+            // Data 存视频路径用于预览
+            opt.setAttribute('data-url', p.video_path);
+            opt.setAttribute('data-title', p.title);
+            
+            let statusMark = p.status === 'published' ? '【已发】' : '【待发】';
+            opt.innerText = `${statusMark} ${p.title}`;
+            select.appendChild(opt);
+        });
+    }
+    
+    function previewUploadVideo() {
+        const select = document.getElementById('uploadVideoSelect');
+        const selectedOpt = select.options[select.selectedIndex];
+        
+        const url = selectedOpt.getAttribute('data-url');
+        const title = selectedOpt.getAttribute('data-title');
+        
+        const box = document.getElementById('uploadPreviewBox');
+        const player = document.getElementById('uploadPreviewPlayer');
+        
+        // 自动填入标题
+        if (title) {
+            document.getElementById('uploadTitle').value = title;
+        }
+
+        if(url) {
+            box.style.display = 'block';
+            player.src = url;
+        } else {
+            box.style.display = 'none';
+        }
+    }
+    
+    async function doPublish(platform) {
+        const projectId = document.getElementById('uploadVideoSelect').value;
+        const title = document.getElementById('uploadTitle').value;
+        const tags = document.getElementById('uploadTags').value;
+        
+        if(!projectId) return alert("请先选择一个项目");
+        if(!title) return alert("请填写标题");
+        
+        if(!confirm(`确认发布到【${platform}】吗？`)) return;
+        
+        // 确保 WebSocket 是连接状态，以便接收报错
+        if(!ws || ws.readyState !== WebSocket.OPEN) {
+             ws = new WebSocket(`ws://${location.host}/ws/logs/${CLIENT_ID}`);
+        }
+
+        const allBtns = document.querySelectorAll('#upload-pane button');
+        allBtns.forEach(b => b.disabled = true);
+        
+        try {
+            const res = await fetch('/api/upload/publish', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    platform: platform,
+                    project_id: projectId,
+                    title: title,
+                    tags: tags,
+                    client_id: CLIENT_ID // [新增] 传给后端
+                })
+            });
+            const d = await res.json();
+            if(d.status === 'started') {
+                // 不弹 Alert 了，直接看日志框或者状态栏
+                // 如果需要，可以把 RenderModal 借用过来显示发布日志
+                // 这里简单处理：
+                console.log("发布任务已启动");
+            } else {
+                alert("启动失败: " + d.msg);
+            }
+        } catch(e) { 
+            alert("API Error: " + e); 
+        } finally {
+            allBtns.forEach(b => b.disabled = false);
+        }
+    }
+
+    // --- 全局消息监听 (用于发布中心报错) ---
+    function initGlobalWS() {
+        const socket = new WebSocket(`ws://${location.host}/ws/logs/${CLIENT_ID}`);
+        socket.onmessage = (e) => {
+            const msg = e.data;
+            
+            // 1. 处理认证过期信号
+            if (msg.includes("AUTH_EXPIRED@@@")) {
+                const parts = msg.split("@@@");
+                const platform = parts[1];
+                
+                // 播放一个提示音（可选）
+                // alert 不太好，用 confirm 引导用户
+                if(confirm(`⚠️ 【${platform}】登录已过期！\nCookie 已自动清理。\n\n是否立即重新扫码登录？`)) {
+                    loginPlatform(platform);
+                }
+                
+                // 刷新状态列表 (把"已连接"变成"连接")
+                checkLoginStatus();
+            }
+            
+            // 2. 处理发布成功信号
+            if (msg.includes("发布成功")) {
+                alert(msg); // 简单弹窗提示
+                checkLoginStatus(); // 刷新可能的状态
+            }
+        };
+    }
+    
+    // 页面加载后启动全局监听
+    window.addEventListener('DOMContentLoaded', () => {
+        updateStylePreview();
+        initGlobalWS(); // [新增]
+    });
 </script>
 </body>
 </html>

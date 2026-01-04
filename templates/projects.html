@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目管理 - AI 视频工作站</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .table-card { background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.04); overflow: hidden; }
+        .status-badge { font-size: 0.8rem; padding: 5px 10px; border-radius: 20px; }
+        .status-draft { background-color: #e2e3e5; color: #383d41; }
+        .status-generated { background-color: #cff4fc; color: #055160; }
+        .status-published { background-color: #d1e7dd; color: #0f5132; }
+        .action-btn { margin-right: 5px; }
+        .cover-preview { width: 60px; height: 34px; object-fit: cover; border-radius: 4px; background: #eee; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container">
+        <a class="navbar-brand" href="#">🎬 视频项目管理</a>
+        <div class="d-flex">
+            <a href="/" class="btn btn-outline-light btn-sm me-2">Go to 编辑器</a>
+            <button class="btn btn-primary btn-sm" onclick="openCreateModal()">+ 新建项目</button>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="table-card p-4">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>封面</th>
+                    <th style="width: 20%">标题</th>
+                    <th style="width: 30%">文案摘要</th>
+                    <th>状态</th>
+                    <th>成片</th>
+                    <th>发布时间</th>
+                    <th class="text-end">操作</th>
+                </tr>
+            </thead>
+            <tbody id="projectList">
+                <!-- 动态生成 -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 新建/编辑 Modal -->
+<div class="modal fade" id="projectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">新建项目</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="pId">
+                <div class="mb-3">
+                    <label class="form-label">视频标题</label>
+                    <input type="text" id="pTitle" class="form-control" placeholder="例如：2025 AI 风口">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">文案脚本</label>
+                    <textarea id="pScript" class="form-control" rows="5" placeholder="输入完整文案..."></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">计划发布时间</label>
+                    <input type="datetime-local" id="pTime" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button class="btn btn-primary" onclick="saveProject()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 发布 Modal -->
+<div class="modal fade" id="publishModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">🚀 一键发布</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>将视频发布到以下平台 (需先去"发布中心"登录):</p>
+                <input type="hidden" id="pubPid">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-dark" onclick="doPublish('douyin')">抖音</button>
+                    <button class="btn btn-outline-danger" onclick="doPublish('xiaohongshu')">小红书</button>
+                    <button class="btn btn-outline-warning" onclick="doPublish('bilibili')">Bilibili</button>
+                    <button class="btn btn-outline-success" onclick="doPublish('video_number')">视频号</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const modal = new bootstrap.Modal(document.getElementById('projectModal'));
+    const pubModal = new bootstrap.Modal(document.getElementById('publishModal'));
+
+    document.addEventListener('DOMContentLoaded', loadProjects);
+
+    async function loadProjects() {
+        const res = await fetch('/api/projects');
+        const d = await res.json();
+        const tbody = document.getElementById('projectList');
+        tbody.innerHTML = '';
+        
+        d.data.forEach(p => {
+            let statusBadge = `<span class="badge status-draft">草稿</span>`;
+            if (p.status === 'generated') statusBadge = `<span class="badge status-generated">已生成</span>`;
+            if (p.status === 'published') statusBadge = `<span class="badge status-published">已发布</span>`;
+            
+            const isLocked = p.status === 'published';
+            const videoLink = p.video_path ? `<a href="${p.video_path}" target="_blank" class="btn btn-xs btn-link">查看</a>` : '-';
+            
+            // 封面图逻辑 (如果生成了视频，尝试找同名封面，或者默认图)
+            const coverSrc = p.cover_path || "https://placehold.co/60x34?text=Cover";
+            
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><img src="${coverSrc}" class="cover-preview"></td>
+                <td class="fw-bold">${p.title}</td>
+                <td class="text-truncate" style="max-width: 200px;">${p.script}</td>
+                <td>${statusBadge}</td>
+                <td>${videoLink}</td>
+                <td>${p.publish_time ? p.publish_time.replace('T', ' ') : '-'}</td>
+                <td class="text-end">
+                    ${!isLocked ? `
+                        <button class="btn btn-sm btn-outline-primary action-btn" onclick="goToEditor('${p.id}')">✂️ 制作/分镜</button>
+                        <button class="btn btn-sm btn-outline-secondary action-btn" onclick="editProject('${p.id}')">✏️</button>
+                    ` : ''}
+                    
+                    ${p.status === 'generated' ? `
+                        <button class="btn btn-sm btn-success action-btn" onclick="openPublish('${p.id}')">📤 发布</button>
+                    ` : ''}
+                    
+                    <button class="btn btn-sm btn-outline-danger action-btn" onclick="deleteProject('${p.id}')"><i class="fas fa-trash"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function openCreateModal() {
+        document.getElementById('pId').value = '';
+        document.getElementById('pTitle').value = '';
+        document.getElementById('pScript').value = '';
+        document.getElementById('pTime').value = '';
+        document.getElementById('modalTitle').innerText = "新建项目";
+        modal.show();
+    }
+
+    async function editProject(pid) {
+        const res = await fetch(`/api/projects/${pid}`);
+        const d = await res.json();
+        if(d.status === 'ok') {
+            document.getElementById('pId').value = d.data.id;
+            document.getElementById('pTitle').value = d.data.title;
+            document.getElementById('pScript').value = d.data.script;
+            document.getElementById('pTime').value = d.data.publish_time;
+            document.getElementById('modalTitle').innerText = "编辑项目";
+            modal.show();
+        }
+    }
+
+    async function saveProject() {
+        const pid = document.getElementById('pId').value;
+        const payload = {
+            title: document.getElementById('pTitle').value,
+            script: document.getElementById('pScript').value,
+            publish_time: document.getElementById('pTime').value
+        };
+        
+        let url = '/api/projects';
+        let method = 'POST';
+        
+        if (pid) {
+            url = `/api/projects/${pid}`;
+            method = 'PUT';
+        }
+        
+        const res = await fetch(url, {
+            method: method,
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        
+        if (res.ok) {
+            modal.hide();
+            loadProjects();
+        } else {
+            alert("保存失败");
+        }
+    }
+
+    async function deleteProject(pid) {
+        if(!confirm("确定删除吗？")) return;
+        await fetch(`/api/projects/${pid}`, {method: 'DELETE'});
+        loadProjects();
+    }
+
+    // 核心跳转逻辑：带ID跳转到 index.html
+    function goToEditor(pid) {
+        window.location.href = `/?project_id=${pid}`;
+    }
+
+    function openPublish(pid) {
+        document.getElementById('pubPid').value = pid;
+        pubModal.show();
+    }
+
+    async function doPublish(platform) {
+        const pid = document.getElementById('pubPid').value;
+        if(!confirm(`确认发布到 ${platform}?`)) return;
+        
+        const res = await fetch(`/api/projects/${pid}/publish_now`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({platform: platform})
+        });
+        const d = await res.json();
+        if(d.status === 'started') {
+            alert("✅ 发布任务已提交后台！");
+            pubModal.hide();
+            loadProjects();
+        } else {
+            alert("❌ 发布失败: " + d.msg);
+        }
+    }
+</script>
+</body>
+</html>

@@ -1,8 +1,8 @@
 # config.py
 
 # --- API Keys (在此填入，前端如果没有输入则默认使用这里的) ---
-PEXELS_API_KEY = "" 
-PIXABAY_API_KEY = "" # 用于下载音效
+PEXELS_API_KEY = "ELoTSPIHGV6Qkh9cavxkD6Qc6P1b2Iy8EZFEQiHP2St3vewvciPn1VW2" 
+PIXABAY_API_KEY = "18947618-c9a8be6edfb13d0111b36ba44" # 用于下载音效
 
 # --- LLM 配置 ---
 MODEL_NAME = "qwen2.5:7b"  # 本地 Ollama 模型名称
@@ -10,8 +10,8 @@ MODEL_NAME = "qwen2.5:7b"  # 本地 Ollama 模型名称
 # --- 默认音频设置 ---
 DEFAULT_VOICE = "zh-CN-YunxiNeural"  # 默认解说声音
 BGM_VOLUME = 0.1                     # 背景音乐音量
-AUDIO_PADDING = 0.2                  # 句间停顿(秒)
-DEFAULT_TTS_RATE = "+15%"            # 默认语速
+AUDIO_PADDING = 0                  # 句间停顿(秒)
+DEFAULT_TTS_RATE = "+10%"            # 默认语速
 
 # --- 可选语音列表 (用于前端下拉菜单) ---
 # 格式: ("标识符", "显示名称")

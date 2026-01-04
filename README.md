@@ -32,8 +32,11 @@ chmod +x install.sh
 *   下载默认中文字体。
 *   初始化资源目录。
 
-激活 Conda 环境 
+创建并激活 Conda 环境 
 ```bash
+# 创建一个名为 cosyvoice 的环境，并安装 Python 3.9
+conda create -n cosyvoice python=3.9
+# 先激活环境
 conda activate cosyvoice
 ```
 
@@ -61,6 +64,9 @@ PIXABAY_API_KEY = "你的_key"
 
 2. 访问界面：
    打开浏览器访问：[http://127.0.0.1:8000](http://127.0.0.1:8000)
+
+3. 封面图绘制：
+   打开浏览器访问：[http://127.0.0.1:8000/canvas.html](http://127.0.0.1:8000/canvas.html)
 
 ## 📖 使用流程
 
