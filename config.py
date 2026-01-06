@@ -1,8 +1,8 @@
 # config.py
 
 # --- API Keys (在此填入，前端如果没有输入则默认使用这里的) ---
-PEXELS_API_KEY = "" 
-PIXABAY_API_KEY = "" # 用于下载音效
+PEXELS_API_KEY = "ELoTSPIHGV6Qkh9cavxkD6Qc6P1b2Iy8EZFEQiHP2St3vewvciPn1VW2" 
+PIXABAY_API_KEY = "18947618-c9a8be6edfb13d0111b36ba44" # 用于下载音效
 
 # --- LLM 配置 ---
 MODEL_NAME = "qwen2.5:7b"  # 本地 Ollama 模型名称
