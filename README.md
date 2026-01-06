@@ -194,8 +194,11 @@ auto_video_maker/
 ├── config.py            # 全局配置文件
 ├── logic.py             # 核心视频处理逻辑 (Engine)
 ├── server.py            # Web 服务器接口 (API)
+├── projects.json        # 项目配置文件 (存储用户分镜配置)
+├── project_manager.py   # 项目管理模块 (加载/保存项目)
 └── requirements.txt     # 依赖列表
 ```
+
 
 ## ❓ 常见问题排查
 
@@ -212,9 +215,8 @@ A: 通常是 Edge-TTS 连接微软服务器超时。程序内置了重试机制�
 
 **Q: 视频画面黑屏？**
 A: 检查该分镜是否分配了有效的视频素材。如果本地文件被误删，请重新选择素材。
-```
 
----
+
 
 ### 如何更新到您的项目
 
