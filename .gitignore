@@ -2,7 +2,8 @@
 assets
 outputs
 temp_web
-./cookies
+cookies
+third_party
 
 ./config.py
 ./projects.json
