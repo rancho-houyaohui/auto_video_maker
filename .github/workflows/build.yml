@@ -3,63 +3,74 @@ name: Build Desktop App
 on:
   push:
     tags:
-      - 'v*' # 当你推送 tag (如 v1.0) 时触发打包
-  workflow_dispatch: # 允许手动点击按钮触发
+      - [...](asc_slot://start-slot-5)'v*' # 当推送 tag (如 v1.0) 时触发
+  workflow_dispatch: # [...](asc_slot://start-slot-7)允许手动触发
 
 jobs:
   build:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - os: macos-latest
-            ffmpeg_url: https://evermeet.cx/ffmpeg/ffmpeg-115317-g26d7c5d9f0.zip
+          - [...](asc_slot://start-slot-9)os: macos-latest
+            # [...](asc_slot://start-slot-11)建议使用 evermeet 的 latest 链接或通过 brew 安装
+            ffmpeg_url: https://evermeet.cx/ffmpeg/getrelease/zip
             ffmpeg_bin: ffmpeg
-            asset_name: AI_Video_Station_Mac.dmg # 或 .app.zip
-          - os: windows-latest
+            asset_name: AI_Video_Station_Mac # 上传后会自动打包为 zip
+          - [...](asc_slot://start-slot-13)os: windows-latest
             ffmpeg_url: https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip
             ffmpeg_bin: ffmpeg.exe
-            asset_name: AI_Video_Station_Win.exe
+            asset_name: AI_Video_Station_Win
 
     steps:
-      - uses: actions/checkout@v3
+      - [...](asc_slot://start-slot-15)uses: actions/checkout@v4 # 升级到 v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - [...](asc_slot://start-slot-17)name: Set up Python
+        uses: actions/setup-python@v5 # 升级到 v5
         with:
           python-version: '3.10'
+          cache: 'pip' # 开启缓存，加快构建速度
 
-      - name: Install Dependencies
+      - [...](asc_slot://start-slot-19)name: Install Dependencies
         run: |
           pip install -r requirements.txt
           pip install pyinstaller pywebview
 
-      - name: Setup FFmpeg (Mac)
+      - [...](asc_slot://start-slot-21)name: Setup FFmpeg (Mac)
         if: runner.os == 'macOS'
         run: |
           mkdir -p bin
-          curl -L -o ffmpeg.zip ${{ matrix.ffmpeg_url }}
-          unzip ffmpeg.zip
+          # [...](asc_slot://start-slot-23)使用 curl 下载，-L 跟随重定向
+          curl -L -o ffmpeg.zip "${{ matrix.ffmpeg_url }}"
+          unzip -o ffmpeg.zip
+          # [...](asc_slot://start-slot-25)evermeet zip 解压后通常直接就是 ffmpeg 可执行文件
           mv ffmpeg bin/ffmpeg
           chmod +x bin/ffmpeg
           rm ffmpeg.zip
 
-      - name: Setup FFmpeg (Windows)
+      - [...](asc_slot://start-slot-27)name: Setup FFmpeg (Windows)
         if: runner.os == 'Windows'
+        shell: pwsh
         run: |
-          mkdir bin
-          curl -L -o ffmpeg.zip ${{ matrix.ffmpeg_url }}
+          New-Item -ItemType Directory -Force -Path bin
+          # [...](asc_slot://start-slot-29)Windows 下强制使用 curl.exe 以支持 -L -o 参数
+          & curl.exe -L -o ffmpeg.zip "${{ matrix.ffmpeg_url }}"
           7z x ffmpeg.zip
-          move ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe bin\ffmpeg.exe
-          del ffmpeg.zip
+          # [...](asc_slot://start-slot-31)注意：BtbN 的压缩包解压后有一层文件夹，通常是 ffmpeg-master-latest-win64-gpl
+          # [...](asc_slot://start-slot-33)这里使用通配符移动，防止文件夹名称变动导致找不到
+          Move-Item -Path ffmpeg-*-win64-gpl\bin\ffmpeg.exe -Destination bin\ffmpeg.exe -Force
+          Remove-Item ffmpeg.zip
+          Remove-Item -Path ffmpeg-*-win64-gpl -Recurse -Force
 
-      - name: Build with PyInstaller
+      - [...](asc_slot://start-slot-35)name: Build with PyInstaller
+        # 确保你的 .spec 文件里配置了将 bin/ffmpeg 打包进去
         run: |
           pyinstaller AI_Video_Station.spec --clean --noconfirm
 
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+      - [...](asc_slot://start-slot-37)name: Upload Artifacts
+        uses: actions/upload-artifact@v4 # 升级到 v4
         with:
           name: ${{ matrix.asset_name }}
           path: dist/
