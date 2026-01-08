@@ -78,6 +78,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.asset_name }}
-          path: |
-            dist/*.exe
-            dist/*.zip
+          path: dist/*.zip
