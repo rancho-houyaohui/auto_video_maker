@@ -37,7 +37,7 @@ jobs:
       - name: Install Dependencies
         run: |
           pip install -r requirements.txt
-          pip install pyinstaller pywebview
+          pip install pyinstaller pywebview gradio_client
 
       # Mac FFmpeg 设置
       - name: Setup FFmpeg (Mac)
