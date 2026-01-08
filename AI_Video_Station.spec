@@ -3,6 +3,14 @@ from PyInstaller.utils.hooks import copy_metadata
 import sys
 import os
 
+if sys.platform == 'win32':
+    ffmpeg_path = 'bin/ffmpeg.exe'
+else:
+    ffmpeg_path = 'bin/ffmpeg'
+
+if not os.path.exists(ffmpeg_path):
+    print(f"Error: FFmpeg binary not found at {ffmpeg_path}")
+
 # --- 资源配置 ---
 datas = [
     ('build_assets', 'assets'),
@@ -31,7 +39,7 @@ a = Analysis(
         'project_manager.py'
     ],
     pathex=['.'], # 显式指定当前目录为搜索路径
-    binaries=[('bin/ffmpeg', 'bin')], 
+    binaries=[(ffmpeg_path, 'bin')], 
     datas=datas,
     hiddenimports=[
         'uvicorn.logging',
