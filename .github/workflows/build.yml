@@ -65,9 +65,19 @@ jobs:
       - name: Build with PyInstaller
         run: |
           pyinstaller AI_Video_Station.spec --clean --noconfirm
+        # --- 新增步骤：手动打包 Mac 应用 ---
+      - name: Zip App (Mac)
+        if: runner.os == 'macOS'
+        run: |
+          cd dist
+          # 使用 -r 保留目录结构，-y 保留符号链接和权限
+          zip -r -y AI_Video_Station_Mac.zip AI_Video_Station.app
 
+      # --- 修改上传步骤 ---
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.asset_name }}
-          path: dist/
+          path: |
+            dist/*.exe
+            dist/*.zip

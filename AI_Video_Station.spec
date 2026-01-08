@@ -50,7 +50,6 @@ a = Analysis(
         'uvicorn.protocols.http.auto',
         'uvicorn.lifespan',
         'uvicorn.lifespan.on',
-        'engineio.async_drivers.threading',
         'moviepy.audio.fx.all',
         'moviepy.video.fx.all',
         'PIL',
@@ -82,14 +81,13 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
-    console=False, 
+    upx=False,
+    console=True, 
     disable_windowed_traceback=False,
     argv_emulation=True, 
     target_arch=None,
     codesign_identity=None,
-    # 添加Mac系统权限配置
-    entitlements_file='entitlements.plist' if os.path.exists('entitlements.plist') else None,
+    entitlements_file=None,
     icon='build_assets/icon.icns' if os.path.exists('build_assets/icon.icns') else None
 )
 
@@ -99,7 +97,7 @@ coll = COLLECT(
     a.binaries,
     a.datas,
     strip=False,
-    upx=True,
+    upx=False,
     upx_exclude=[],
     name='AI_Video_Station',
 )
@@ -111,6 +109,7 @@ app = BUNDLE(
     icon='build_assets/icon.icns' if os.path.exists('build_assets/icon.icns') else None,
     bundle_identifier='com.rancho.aivideostation',
     info_plist={
-        'CFBundleIconFile': 'icon.icns'
+        'CFBundleIconFile': 'icon.icns',
+        'LSBackgroundOnly': False
     },
 )

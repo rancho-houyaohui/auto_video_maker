@@ -16,6 +16,10 @@ if getattr(sys, 'frozen', False):
 # 使用config.py中已定义的目录，避免重复创建
 log_dir = os.path.join(os.path.expanduser("~"), "Documents", "AI_Video_Output")
 
+# 确保日志目录存在
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir, exist_ok=True)
+
 log_file = os.path.join(log_dir, "app_debug.log")
 
 class LoggerWriter:

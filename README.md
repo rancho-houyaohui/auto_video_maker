@@ -174,6 +174,9 @@ chmod +x bin/ffmpeg
 rm -rf build dist
 # 重新打包
 pyinstaller AI_Video_Station.spec --clean --noconfirm
+
+# 检查打包文件
+./dist/AI_Video_Station.app/Contents/MacOS/AI_Video_Station
 ```
 
 **参数说明：**
