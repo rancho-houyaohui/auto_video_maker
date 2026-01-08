@@ -2,8 +2,10 @@ import json
 import os
 import time
 import uuid
+import config  # [核心修改] 引入配置以获取用户文档路径
 
-PROJECT_DB_FILE = "projects.json"
+# [核心修改] 数据库文件必须存在用户文档目录下，不能存放在 app 内部
+PROJECT_DB_FILE = os.path.join(config.USER_DOCS, "projects.json")
 
 class ProjectManager:
     def __init__(self):
@@ -11,13 +13,22 @@ class ProjectManager:
         self._ensure_db()
 
     def _ensure_db(self):
+        # 确保父目录存在 (虽然 config.py 里做了，但这层防御很必要)
+        parent_dir = os.path.dirname(self.db_file)
+        if not os.path.exists(parent_dir):
+            os.makedirs(parent_dir)
+
         if not os.path.exists(self.db_file):
             with open(self.db_file, 'w', encoding='utf-8') as f:
                 json.dump([], f)
 
     def _load_data(self):
-        with open(self.db_file, 'r', encoding='utf-8') as f:
-            return json.load(f)
+        # 增加容错，防止 JSON 损坏导致程序打不开
+        try:
+            with open(self.db_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except (json.JSONDecodeError, FileNotFoundError):
+            return []
 
     def _save_data(self, data):
         with open(self.db_file, 'w', encoding='utf-8') as f:
@@ -35,16 +46,16 @@ class ProjectManager:
                 return item
         return None
 
-    def create(self, title, script, publish_time=""):
+    def create(self, title, script, cover_path=""):
         data = self._load_data()
         new_project = {
             "id": str(uuid.uuid4())[:8],
             "title": title,
             "script": script,
-            "cover_path": "", # 封面图路径
+            "cover_path": cover_path, # 封面图路径
             "video_path": "",         # 成片路径
             "status": "draft",        # draft(草稿), generated(已生成), published(已发布)
-            "publish_time": publish_time,       # 计划发布时间
+            "publish_time": "",       # 计划发布时间
             "created_at": time.time(),
             "scenes_data": []         # 暂存分镜数据
         }
@@ -56,9 +67,10 @@ class ProjectManager:
         data = self._load_data()
         for item in data:
             if item['id'] == project_id:
-                # 如果已发布，仅允许更新特定字段(如状态回退)，这里做简单限制
+                # 状态简单流转逻辑
                 if item['status'] == 'published' and 'status' not in update_dict:
-                    return False # 禁止修改已发布内容
+                    # 允许更新，但在业务层可能会限制，这里暂放开
+                    pass 
                 
                 item.update(update_dict)
                 self._save_data(data)
@@ -71,4 +83,5 @@ class ProjectManager:
         self._save_data(new_data)
         return True
 
+# 初始化实例
 project_mgr = ProjectManager()

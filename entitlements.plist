@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- 图标文件被正确声明 -->
+    <key>CFBundleIconFile</key>
+    <string>icon.icns</string>
+
+    <!-- 不使用沙盒，这样可以访问用户的Documents目录 -->
+    <key>com.apple.security.app-sandbox</key>
+    <false/>
+    
+    <!-- 允许网络连接 -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+    
+    <!-- 允许访问用户的文件系统 -->
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+    
+    <!-- 允许访问用户的Documents目录 -->
+    <key>com.apple.security.files.documents.read-write</key>
+    <true/>
+    
+    <!-- 允许访问用户的Downloads目录 -->
+    <key>com.apple.security.files.downloads.read-write</key>
+    <true/>
+</dict>
+</plist>

@@ -64,9 +64,9 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3>🎬 AI 视频全流程工作站 <span class="badge bg-danger">Ultimate</span></h3>
         <div>
-            <button class="btn btn-outline-secondary btn-sm" onclick="location.reload()">刷新页面</button>
-            <a href="/projects" target="_blank"><button class="btn  btn-outline-secondary  btn-sm">🎬 视频项目管理</button></a></li>
-            <a href="/canvas" target="_blank"><button class="btn  btn-outline-secondary  btn-sm">🖼️ 封面工坊</button></a></li>
+            <button class="btn btn-outline-secondary btn-sm" onclick="location.reload()">刷新</button>
+            <a href="/projects" id="projectsLink" target="_blank"><button class="btn  btn-outline-secondary  btn-sm">🎬 视频项目管理</button></a></li>
+            <a href="/canvas" id="canvasLink" target="_blank"><button class="btn  btn-outline-secondary  btn-sm">🖼️ 封面工坊</button></a></li>
         </div>
     </div>
 
@@ -77,9 +77,9 @@
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#script-pane" id="tab-script">📝 分镜精修</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#resource-pane">📦 资源库</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#history-pane" onclick="loadHistory()">📜 历史记录</button></li>
-        <li class="nav-item">
+        <!-- <li class="nav-item">
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#upload-pane" onclick="checkLoginStatus()">🚀 发布中心</button>
-        </li>
+        </li> -->
     </ul>
 
     <div class="tab-content">
@@ -90,9 +90,43 @@
                 <div class="row g-4">
                     <div class="col-md-6 border-end">
                         <h6 class="text-muted fw-bold mb-3">API 密钥设置</h6>
-                        <input type="password" id="pexelsKey" class="form-control mb-3" placeholder="{{ 'Pexels 已在后台配置' if default_pexels else '请输入 Pexels API Key' }}">
-                        <input type="password" id="pixabayKey" class="form-control" placeholder="{{ 'Pixabay 已在后台配置' if default_pixabay else '请输入 Pixabay API Key' }}">
+                        <input type="password" id="pexelsKey" class="form-control mb-3" placeholder="{{ 'Pexels 已在后台配置' if default_pexels else '请输入 Pexels API Key' }}" oninput="localStorage.setItem('pexelsKey', this.value)">
+                        <!-- <input type="password" id="pixabayKey" class="form-control" placeholder="{{ 'Pixabay 已在后台配置' if default_pixabay else '请输入 Pixabay API Key' }}"> -->
                         <div class="form-text mt-2">注: 音效搜索默认使用 MyInstants (无需Key)</div>
+                        <hr class="my-4">
+                        <h6 class="text-muted fw-bold mb-3">🧠 大模型设置 (LLM)</h6>
+                        <div class="mb-3">
+                            <label class="form-label small">模型来源</label>
+                            <select id="llmProvider" class="form-select" onchange="toggleLlmSettings()">
+                                <option value="ollama">本地 Ollama (免费/隐私)</option>
+                                <option value="api">在线 API (DeepSeek/OpenAI)</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Ollama 设置 -->
+                        <div id="ollamaSettings">
+                            <div class="mb-3">
+                                <label class="form-label small">本地模型名称</label>
+                                <input type="text" id="ollamaModel" class="form-control" placeholder="qwen2.5:7b" value="{{ default_llm_model }}">
+                                <div class="form-text">请确保终端已运行 `ollama serve`</div>
+                            </div>
+                        </div>
+                        
+                        <!-- API 设置 (默认隐藏) -->
+                        <div id="apiSettings" style="display:none;">
+                            <div class="mb-3">
+                                <label class="form-label small">API Base URL</label>
+                                <input type="text" id="apiBaseUrl" class="form-control" placeholder="https://api.deepseek.com" value="{{ default_api_base }}" oninput="localStorage.setItem('apiBaseUrl', this.value)">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small">API Key</label>
+                                <input type="password" id="apiKey" class="form-control" placeholder="sk-..." oninput="localStorage.setItem('apiKey', this.value)">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small">模型名称 (Model ID)</label>
+                                <input type="text" id="apiModel" class="form-control" placeholder="deepseek-chat" oninput="localStorage.setItem('apiModel', this.value)">
+                            </div>
+                        </div>
                     </div>
                     <div class="col-md-6">
                         <h6 class="text-muted fw-bold mb-3">默认生成参数</h6>
@@ -409,7 +443,7 @@
                 <div id="resultArea" style="display:none" class="text-center">
                     <div class="alert alert-success fw-bold">✅ 渲染完成！</div>
                     <video id="finalVideoPlayer" controls class="w-100 mb-3 bg-black" style="max-height: 400px; border-radius: 8px;"></video>
-                    <div class="d-flex justify-content-center gap-3">
+                    <div class="d-flex justify-content-center gap-3" id="actionBtnContainer">
                         <a id="finalDownloadBtn" href="#" class="btn btn-primary btn-lg px-4" download>📥 下载视频</a>
                         <button class="btn btn-outline-secondary btn-lg px-4" data-bs-dismiss="modal">关闭</button>
                     </div>
@@ -424,6 +458,13 @@
     const SERVER_VOICE_OPTIONS = [{% for vid, vname in voice_options %} {id: "{{vid}}", name: "{{vname}}"}, {% endfor %}];
     const SERVER_SFX_LIST = [{% for s in sfx_list %} "{{s}}", {% endfor %}];
     const CLIENT_ID = "client_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+
+    // 获取环境信息
+    const isFrozen = {{ is_frozen|tojson }};
+    console.log("isFrozen:", isFrozen);
+    // function isDesktopApp() {
+    //     return window.pywebview !== undefined;
+    // }
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -584,27 +625,76 @@
         } catch(e) { alert("Err: "+e); }
     }
 
+    function toggleLlmSettings() {
+        const provider = document.getElementById('llmProvider').value;
+        document.getElementById('ollamaSettings').style.display = provider === 'ollama' ? 'block' : 'none';
+        document.getElementById('apiSettings').style.display = provider === 'api' ? 'block' : 'none';
+
+        // 保存 LLM 设置
+        document.getElementById('pexelsKey').value = localStorage.getItem('pexelsKey') || '';
+        document.getElementById('apiBaseUrl').value = localStorage.getItem('apiBaseUrl') || '';
+        document.getElementById('apiKey').value = localStorage.getItem('apiKey') || '';
+        document.getElementById('apiModel').value = localStorage.getItem('apiModel') || '';
+
+    }
+    
+    // 初始化时调用一次
+    toggleLlmSettings();
+
     // --- AI 分析 ---
     async function analyzeScript(btn) {
         const text = document.getElementById('scriptInput').value;
         const pexels = document.getElementById('pexelsKey').value;
-        const pixabay = document.getElementById('pixabayKey').value;
+        // const pixabay = document.getElementById('pixabayKey').value;
+        const pixabay = '';
+
+
+        // 获取 LLM 参数
+        const provider = document.getElementById('llmProvider').value;
+        let llmModel = "";
+        let llmBase = "";
+        let llmKey = "";
+        
+        if (provider === 'ollama') {
+            llmModel = document.getElementById('ollamaModel').value;
+        } else {
+            llmModel = document.getElementById('apiModel').value;
+            llmBase = document.getElementById('apiBaseUrl').value;
+            llmKey = document.getElementById('apiKey').value;
+        }
         
         if(!text.trim()) { alert("请输入文案"); return; }
 
         btn.disabled = true; 
         const oldText = "🧠 AI 拆解分镜";
-        const states = ["连接 Qwen2.5...", "分析语义...", "提取关键词...", "匹配音效...", "生成数据..."];
+        const states = ["连接大模型...", "分析语义...", "提取关键词...", "匹配音效...", "生成数据..."];
         let sIdx = 0;
-        const interval = setInterval(() => { btn.innerText = states[sIdx++ % states.length]; }, 1500);
+        const interval = setInterval(() => { btn.innerText = states[sIdx++ % states.length]; }, 2500);
 
         try {
             const res = await fetch('/api/analyze', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({text, pexels_key: pexels, pixabay_key: pixabay})
+                body: JSON.stringify({
+                    text, 
+                    pexels_key: pexels, 
+                    pixabay_key: pixabay,
+                    llm_provider: provider,
+                    llm_model: llmModel,
+                    llm_base_url: llmBase,
+                    llm_api_key: llmKey
+                })
             });
-            const data = await res.json();
+
+            const rawText = await res.text();
+            let data;
+            try {
+                data = JSON.parse(rawText);
+            } catch(e) {
+                // 如果解析失败，说明后端崩了，直接弹窗显示后端报错堆栈
+                alert("后端严重错误 (500):\n" + rawText.substring(0, 500)); // 截取前500字
+                throw new Error("JSON Parse Error");
+            }
             
             if(data.status !== "ok") throw new Error("Analysis failed");
             
@@ -663,9 +753,24 @@
             }
             if (scene.video === 'random') vInfo = {type: 'local', src: '', name: '随机素材'};
 
-            let mediaHtml = vInfo.src ? 
-                `<video src="${vInfo.src}" class="video-thumb" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>` :
-                `<div class="video-thumb d-flex align-items-center justify-content-center text-secondary bg-light border small">随机素材</div>`;
+            let mediaHtml = '';
+            
+            if (vInfo.type === 'missing') {
+                // [新增] 缺失素材的样式：红色边框 + 提示点击
+                mediaHtml = `
+                    <div class="video-thumb d-flex flex-column align-items-center justify-content-center bg-light border border-danger text-danger" 
+                         style="cursor:pointer; height:90px;">
+                        <span style="font-size:20px">⚠️</span>
+                        <span class="small" style="font-size:10px">点击选择素材</span>
+                    </div>
+                `;
+            } else if (vInfo.src) {
+                // 正常视频
+                mediaHtml = `<video src="${vInfo.src}" class="video-thumb" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>`;
+            } else {
+                // 随机/未知
+                mediaHtml = `<div class="video-thumb d-flex align-items-center justify-content-center text-secondary bg-light border small">随机素材</div>`;
+            }
             
             let nameDisplay = vInfo.type === 'online' ? `🌐 ${vInfo.tags || 'Pexels'}` : vInfo.name;
 
@@ -1092,6 +1197,16 @@
                 if(item.has_project) {
                     editBtn = `<button class="btn btn-sm btn-warning me-2" onclick="loadProject('${item.json_file}')">✏️ 编辑</button>`;
                 }
+                let actionBtnHtml = '';
+            
+                if (isFrozen) {
+                    // 桌面版：显示“打开位置”按钮
+                    actionBtnHtml = `<button class="btn btn-sm btn-info text-white" onclick="openFileLocation('${item.url}')">📂 位置</button>`;
+                } else {
+                    // 网页版：显示“下载”链接
+                    actionBtnHtml = `<a href="${item.url}" class="btn btn-sm btn-primary" download>📥 下载</a>`;
+                }
+                
                 const html = `
                 <div class="col-md-4">
                     <div class="card h-100 shadow-sm">
@@ -1102,7 +1217,7 @@
                             <div class="d-flex justify-content-between">
                                 <div>
                                     ${editBtn}
-                                    <a href="${item.url}" class="btn btn-sm btn-primary" download>下载</a>
+                                    ${actionBtnHtml}
                                 </div>
                                 <button class="btn btn-sm btn-outline-danger" onclick="deleteHistory('${item.name}', this)">删除</button>
                             </div>
@@ -1112,6 +1227,16 @@
                 container.insertAdjacentHTML('beforeend', html);
             });
         } catch(e) { container.innerHTML = `<div class="alert alert-danger">Error: ${e}</div>`; }
+    }
+
+    async function openFileLocation(url) {
+        try {
+            await fetch('/api/system/reveal', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({path: url})
+            });
+        } catch(e) { alert("无法打开文件夹: " + e); }
     }
 
     async function deleteHistory(filename, btn) {
@@ -1153,7 +1278,6 @@
         } catch(e) { alert("加载失败: " + e); }
     }
 
-    // --- 渲染 WebSocket ---
     async function openRenderModal() {
         const logBox = document.getElementById('logContainer');
         const resultArea = document.getElementById('resultArea');
@@ -1162,33 +1286,31 @@
         
         if (!logBox || !resultArea || !closeBtn) { alert("DOM Error"); return; }
         
-        logBox.innerHTML = '<div class="text-muted small">Connecting...</div>';
+        logBox.innerHTML = '<div class="text-muted small">Initializing...</div>';
         logBox.style.display = 'block'; resultArea.style.display = 'none'; closeBtn.style.display = 'none';
         player.src = "";
         
         renderModal.show();
         
-        if(ws) ws.close();
-        ws = new WebSocket(`ws://${location.host}/ws/logs/${CLIENT_ID}`);
-        
-        ws.onopen = () => startRenderRequest();
-        
-        ws.onmessage = (e) => {
-            const msg = e.data;
-            if (msg.includes("✅") && msg.includes("@@@")) {
-                const parts = msg.split("@@@"); const videoUrl = parts[1];
-                appendLog("Done!", "#51cf66"); ws.close();
-                setTimeout(() => { showResult(videoUrl); }, 500); return;
-            }
-            let color = "#fff"; if(msg.includes("Error")||msg.includes("❌")) color="#ff6b6b"; else if(msg.includes("FFmpeg")) color="#888";
-            appendLog(msg, color);
-        };
+        // 启动请求
+        startRenderRequest();
     }
     
     function appendLog(text, color) {
         const box = document.getElementById('logContainer'); if(!box) return;
-        const p = document.createElement('div'); p.innerText = text; if(color) p.style.color=color;
-        box.appendChild(p); box.scrollTop=box.scrollHeight;
+        
+        // 检查最后一行，如果是同样的进度信息，直接更新，不要刷屏
+        const last = box.lastElementChild;
+        if (last && last.innerText.startsWith("⏳") && text.startsWith("⏳")) {
+            last.innerText = text;
+            return;
+        }
+
+        const p = document.createElement('div'); 
+        p.innerText = text; 
+        if(color) p.style.color=color;
+        box.appendChild(p); 
+        box.scrollTop=box.scrollHeight;
     }
     
     async function startRenderRequest() {
@@ -1198,17 +1320,68 @@
         };
         const rateVal = document.getElementById('ttsRate').value;
         const payload = {
-            client_id: CLIENT_ID, scenes: globalScenes, output_name: "final_" + Date.now(),
-            bgm_file: document.getElementById('bgmSelect').value, bgm_volume: parseFloat(document.getElementById('bgmVol').value),
-            audio_padding: parseFloat(document.getElementById('audioPadding').value), tts_rate: (rateVal>=0?"+":"")+rateVal+"%", subtitle_style: style
+            client_id: CLIENT_ID, // 唯一ID用于轮询
+            scenes: globalScenes, 
+            output_name: "final_" + Date.now(),
+            bgm_file: document.getElementById('bgmSelect').value, 
+            bgm_volume: parseFloat(document.getElementById('bgmVol').value),
+            audio_padding: parseFloat(document.getElementById('audioPadding').value), 
+            tts_rate: (rateVal>=0?"+":"")+rateVal+"%", 
+            subtitle_style: style
         };
-        // 【新增】渲染开始前，保存当前分镜状态
-        if (CURRENT_PROJECT_ID) {
-            await autoSaveProject(); 
-        }
+        
+        try { 
+            const res = await fetch('/api/render', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) }); 
+            const rawText = await res.text(); // 先拿文本，不要直接 .json()
+            console.log("Server Response:", rawText); 
 
-        try { await fetch('/api/render', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) }); }
-        catch(e) { appendLog("API Error: "+e, "red"); }
+            let data;
+            try { data = JSON.parse(rawText); } 
+            catch(e) { 
+                appendLog("❌ 严重错误: " + rawText.substring(0, 200), "red");
+                return;
+            }
+            
+            if (data.status === "started") {
+                // 开始轮询
+                pollProgress(CLIENT_ID);
+            } else {
+                appendLog("Error: " + JSON.stringify(data), "red");
+            }
+        } catch(e) { appendLog("API Error: "+e, "red"); }
+    }
+
+    function pollProgress(cid) {
+        let lastMsg = "";
+        
+        const timer = setInterval(async () => {
+            try {
+                const res = await fetch(`/api/progress/${cid}`);
+                const data = await res.json();
+                
+                // 有新消息才打印
+                if (data.msg && data.msg !== lastMsg) {
+                    let color = "#fff";
+                    if (data.msg.includes("✅")) color = "#51cf66";
+                    else if (data.msg.includes("❌")) color = "#ff6b6b";
+                    else if (data.msg.includes("MoviePy") || data.msg.includes("FFmpeg")) color = "#888";
+                    
+                    appendLog(data.msg, color);
+                    lastMsg = data.msg;
+                }
+                
+                if (data.status === "completed") {
+                    clearInterval(timer);
+                    setTimeout(() => showResult(data.url), 500);
+                } else if (data.status === "error") {
+                    clearInterval(timer);
+                    document.getElementById('closeRenderBtn').style.display = 'block';
+                }
+                
+            } catch(e) {
+                console.log("Poll error", e);
+            }
+        }, 1000); // 每秒查一次
     }
     
     function showResult(url) {
@@ -1218,22 +1391,52 @@
         const p = document.getElementById('finalVideoPlayer');
         const uniqueUrl = url + "?t=" + new Date().getTime();
         p.src = uniqueUrl; p.load();
-        document.getElementById('finalDownloadBtn').href = uniqueUrl;
 
-        // 【修改】使用新的 autoSaveProject 函数更新状态和视频路径
-        if (CURRENT_PROJECT_ID) {
-            fetch(`/api/projects/${CURRENT_PROJECT_ID}`, {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    video_path: url,      // 保存视频 URL
-                    status: 'generated',  // 更新状态
-                    scenes_data: globalScenes // 再次确认保存分镜，防止渲染期间有修改
-                })
-            }).then(res => console.log("项目状态已更新: Generated"));
+        if(isFrozen){
+            // 桌面应用打开文件位置
+            console.log("桌面应用打开文件位置:", url);
+            const _html = document.getElementById('actionBtnContainer');
+            if(_html) _html.innerHTML = `
+                <button id="openDownloadFileLocationBtn" class="btn btn-sm btn-info text-white" onclick="openFileLocation('${url}')">📂 视频位置</button>
+                <button class="btn btn-outline-secondary btn-lg px-4" data-bs-dismiss="modal">关闭</button>
+            `;
+            return
         }
-    }
 
+        // 设置下载按钮
+        const downloadBtn = document.getElementById('finalDownloadBtn');
+        downloadBtn.href = uniqueUrl;
+        
+        // 确保下载功能在所有环境下正常工作
+        downloadBtn.onclick = function(e) {
+            e.preventDefault();
+            
+            // 创建隐藏的下载链接
+            const a = document.createElement('a');
+            a.href = uniqueUrl;
+            a.download = uniqueUrl.split('/').pop().split('?')[0]; // 从URL中提取文件名
+            // 跨浏览器兼容处理
+            if (typeof a.click === 'function') {
+                // 标准浏览器
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            } else if (typeof window.navigator.msSaveBlob === 'function') {
+                // IE/Edge 兼容性
+                fetch(uniqueUrl)
+                    .then(response => response.blob())
+                    .then(blob => {
+                        const fileName = uniqueUrl.split('/').pop().split('?')[0];
+                        window.navigator.msSaveBlob(blob, fileName);
+                    });
+            } else {
+                // 降级方案 - 打开下载链接
+                window.open(uniqueUrl, '_blank');
+            }
+        };
+    }
+    
     // --- 项目自动保存逻辑 ---
     async function autoSaveProject(status = null) {
         if (!CURRENT_PROJECT_ID) return; // 如果不是项目模式，不保存
@@ -1418,6 +1621,24 @@
         }
     }
 
+    // 链接点击事件处理函数
+    async function handleLinkClick(event, targetUrl) {
+        console.log("点击链接:", targetUrl, isFrozen);
+        if (isFrozen) {
+            // 打包环境：在当前窗口打开
+            await fetch('/api/open/win', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({path: targetUrl, title: event.target.innerText})
+            });
+        }
+        // 开发环境：保持原行为（在新窗口打开）
+        else {
+            event.preventDefault();
+            window.open(targetUrl, '_blank');
+        }
+    }
+
     // --- 全局消息监听 (用于发布中心报错) ---
     function initGlobalWS() {
         const socket = new WebSocket(`ws://${location.host}/ws/logs/${CLIENT_ID}`);
@@ -1451,6 +1672,24 @@
     window.addEventListener('DOMContentLoaded', () => {
         updateStylePreview();
         initGlobalWS(); // [新增]
+        
+        // 为链接添加点击事件监听器
+        const projectsLink = document.getElementById('projectsLink');
+        const canvasLink = document.getElementById('canvasLink');
+        
+        if (projectsLink) {
+            projectsLink.addEventListener('click', function(event) {
+                event.preventDefault();
+                handleLinkClick(event, this.getAttribute('href'));
+            });
+        }
+        
+        if (canvasLink) {
+            canvasLink.addEventListener('click', function(event) {
+                event.preventDefault();
+                handleLinkClick(event, this.getAttribute('href'));
+            });
+        }
     });
 </script>
 </body>

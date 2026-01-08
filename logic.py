@@ -11,15 +11,67 @@ import config
 import subprocess
 import shutil
 import traceback
+import proglog
 from moviepy.editor import *
 from moviepy.audio.AudioClip import AudioArrayClip
 import numpy as np
+from openai import OpenAI
 
+#  MoviePy 判断使用内置 FFmpeg
+if config.FFMPEG_BINARY and os.path.exists(config.FFMPEG_BINARY):
+    os.environ["IMAGEIO_FFMPEG_EXE"] = config.FFMPEG_BINARY
+else:
+    print(f"⚠️ Warning: FFmpeg path not resolved by config.")
 
 # 修复 PIL
 import PIL.Image
 if not hasattr(PIL.Image, 'ANTIALIAS'):
     PIL.Image.ANTIALIAS = PIL.Image.LANCZOS
+
+# --- 状态更新 Logger ---
+# 不再依赖 asyncio loop，直接调用 callback 更新内存
+class StatusLogger(proglog.ProgressBarLogger):
+    def __init__(self, callback):
+        super().__init__(init_state=None, bars=None, ignored_bars=None, logged_bars='all', min_time_interval=0, ignore_bars_under=0)
+        self.callback = callback
+    
+    def callback(self, **changes):
+        for (item, state) in changes.items():
+            if not isinstance(state, dict): continue
+            total = state.get('total')
+            index = state.get('index')
+            if total and index:
+                percent = int((index / total) * 100)
+                if percent % 2 == 0: 
+                    # 直接调用回调，传入百分比
+                    self.callback(message=f"⏳ 渲染中 ({item})...", percent=percent)
+
+    def message(self, message):
+        self.callback(message=f"[MoviePy] {message}")
+
+class WebSocketLogger(proglog.ProgressBarLogger):
+    def __init__(self, log_callback, loop):
+        super().__init__(init_state=None, bars=None, ignored_bars=None, logged_bars='all', min_time_interval=0, ignore_bars_under=0)
+        self.log_callback = log_callback
+        self.loop = loop
+    
+    def callback(self, **changes):
+        for (item, state) in changes.items():
+            if not isinstance(state, dict): continue
+            total = state.get('total')
+            index = state.get('index')
+            if total and index:
+                percent = int((index / total) * 100)
+                # 限制频率：每更新 2% 发送一次
+                if percent % 2 == 0: 
+                    msg = f"⏳ 渲染进度: {percent}%"
+                    # 必须使用 run_coroutine_threadsafe，因为这可能是在子线程运行
+                    if self.loop and self.loop.is_running():
+                         asyncio.run_coroutine_threadsafe(self.log_callback(msg), self.loop)
+
+    def message(self, message):
+        if self.loop and self.loop.is_running():
+            asyncio.run_coroutine_threadsafe(self.log_callback(f"[MoviePy] {message}"), self.loop)
 
 class VideoEngine:
     def __init__(self):
@@ -29,14 +81,28 @@ class VideoEngine:
         self.runtime_pexels_key = ""
         self.runtime_pixabay_key = ""
         
-        for d in ["video", "sfx", "music", "fonts", "outputs"]: 
-            os.makedirs(os.path.join(self.ASSETS_DIR, d), exist_ok=True)
-        os.makedirs(self.TEMP_DIR, exist_ok=True)
-        os.makedirs(config.OUTPUT_DIR, exist_ok=True)
+        self.llm_provider = config.LLM_PROVIDER
+        self.llm_api_key = config.API_KEY
+        self.llm_base_url = config.API_BASE_URL
+        if self.llm_provider == 'api':
+            self.llm_model_name = config.API_MODEL_NAME
+        else:
+            self.llm_model_name = config.OLLAMA_MODEL
+        
+        # 目录已经在config.py中创建，这里不再重复创建
 
     def set_api_keys(self, pexels, pixabay):
         self.runtime_pexels_key = pexels.strip()
         self.runtime_pixabay_key = pixabay.strip()
+
+    def set_llm_config(self, provider, api_key, base_url, model_name):
+        self.llm_provider = provider
+        if provider == 'api':
+            if api_key: self.llm_api_key = api_key
+            if base_url: self.llm_base_url = base_url
+            if model_name: self.llm_model_name = model_name
+        else:
+            if model_name: self.llm_model_name = model_name
 
     def _get_key(self, key_type):
         if key_type == "pexels":
@@ -49,82 +115,70 @@ class VideoEngine:
         name = str(name).replace(" ", "_")
         return re.sub(r'[^\w\-_]', '', name)
 
-    # --- [核心优化] 文本分段算法 (更连贯) ---
+    def check_ollama_status(self):
+        try:
+            resp = requests.get("http://127.0.0.1:11434/", timeout=2)
+            if resp.status_code == 200: return True
+        except: return False
+        return False
+
+    def _call_llm(self, prompt):
+        print(f"🤖 Calling LLM ({self.llm_provider}): {self.llm_model_name}...")
+        if self.llm_provider == 'api':
+            if not self.llm_api_key: raise Exception("API Key 未配置")
+            client = OpenAI(api_key=self.llm_api_key, base_url=self.llm_base_url)
+            try:
+                response = client.chat.completions.create(
+                    model=self.llm_model_name,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.7, stream=False
+                )
+                return response.choices[0].message.content
+            except Exception as e:
+                print(f"❌ API Error: {e}"); raise e
+        else:
+            if not self.check_ollama_status(): raise ConnectionError("Ollama 服务未连接")
+            try:
+                response = ollama.chat(model=self.llm_model_name, messages=[{'role':'user','content':prompt}])
+                return response['message']['content']
+            except Exception as e:
+                print(f"❌ Ollama Error: {e}"); raise e
+
     def split_text_by_breath(self, text):
         return self.smart_split_text(text)
 
-    def smart_split_text(self, text, min_chars=15): # 默认改为15字
-        """
-        1. 移除换行。
-        2. 优先按强逻辑符号(句号/问号/感叹号)切分。
-        3. 只有当缓冲区过长时，才考虑按逗号切分。
-        """
+    def smart_split_text(self, text, min_chars=15):
         text = text.replace("\n", " ").strip()
         if not text: return []
-        
-        # 将所有强结束符替换为特殊标记，方便split
-        # 保护中文省略号...
         text = text.replace("...", "@@ELLIPSIS@@")
-        
-        # 1. 强切分：按 。！？ ； 分割
-        # 这里的正则意味着：遇到这些符号就强制切一刀
         sentences = re.split(r'([。！？!?;；]+)', text)
-        
         final_chunks = []
         current_chunk = ""
-        
         for part in sentences:
-            # 还原省略号
             part = part.replace("@@ELLIPSIS@@", "...")
-            
-            # 如果是标点，追加到上一句并强制结束当前句
             if re.match(r'^[。！？!?;；]+$', part):
                 current_chunk += part
-                if current_chunk.strip():
-                    final_chunks.append(current_chunk.strip())
+                if current_chunk.strip(): final_chunks.append(current_chunk.strip())
                 current_chunk = ""
                 continue
-            
-            # 如果是文本
-            # 检查加上这段话是否太长
-            # 如果 current_chunk 已经很长了，且 part 之前是逗号分隔的（隐性逻辑），尝试拆
-            # 但为了简单，我们这里先合并，如果合并后太长，再内部按逗号拆
-            
-            temp_combined = current_chunk + part
-            
-            # 如果合并后长度还可以，或者 part 本身就很短，就合并
-            if len(temp_combined) < min_chars * 2: # 允许稍微长一点
-                current_chunk += part
-            else:
-                # 如果太长了，尝试在 part 内部找逗号切分
-                # 这里简化处理：直接合并，利用标点逻辑
-                current_chunk += part
-
-        # 处理末尾
-        if current_chunk.strip():
-            final_chunks.append(current_chunk.strip())
-            
-        # --- 二次处理：检查有没有特别长的句子，按逗号细分 ---
-        refined_chunks = []
+            temp = current_chunk + part
+            if len(temp) < min_chars * 2: current_chunk += part
+            else: current_chunk += part
+        if current_chunk.strip(): final_chunks.append(current_chunk.strip())
+        
+        refined = []
         for chunk in final_chunks:
-            if len(chunk) > 25: # 如果一句话超过25字，必须切
-                # 按逗号切，但要保证切完的每段不短于 min_chars/2
+            if len(chunk) > 25:
                 commas = re.split(r'([，,])', chunk)
                 sub_buf = ""
                 for frag in commas:
                     if re.match(r'[，,]', frag):
                         sub_buf += frag
-                        # 只有当 sub_buf 足够长时才切，否则保留逗号继续攒
-                        if len(sub_buf) > 10: 
-                            refined_chunks.append(sub_buf)
-                            sub_buf = ""
-                    else:
-                        sub_buf += frag
-                if sub_buf: refined_chunks.append(sub_buf)
-            else:
-                refined_chunks.append(chunk)
-
-        return [c for c in refined_chunks if c.strip()]
+                        if len(sub_buf) > 10: refined.append(sub_buf); sub_buf = ""
+                    else: sub_buf += frag
+                if sub_buf: refined.append(sub_buf)
+            else: refined.append(chunk)
+        return [c for c in refined if c.strip()]
 
     def hex_to_ass_color(self, hex_color):
         hex_color = str(hex_color).lstrip('#')
@@ -183,24 +237,49 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     def clean_for_subtitle(self, text):
         return re.sub(r'[，。！?？,!.、\s]+$', '', text)
 
-    async def run_ffmpeg_async(self, cmd, log_callback):
-        process = await asyncio.create_subprocess_exec(
-            *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-        )
-        while True:
-            line = await process.stderr.readline()
-            if not line: break
-            line_str = line.decode('utf-8', errors='ignore').strip()
-            if line_str:
-                if "frame=" in line_str or "size=" in line_str:
-                    await log_callback(f"[FFmpeg] {line_str}")
-                elif "Error" in line_str:
-                    await log_callback(f"⚠️ {line_str}")
-        await process.wait()
-        if process.returncode != 0:
-            await log_callback(f"❌ FFmpeg return code: {process.returncode}")
+    # --- 异步执行 FFmpeg (传递 loop 解决 RuntimeError) ---
+    async def run_ffmpeg_async(self, cmd, log_callback, loop):
+        if cmd[0] == "ffmpeg":
+            if config.FFMPEG_BINARY:
+                cmd[0] = config.FFMPEG_BINARY
+                # 仅在第一次或调试时打印，避免刷屏
+                # print(f"🔧 FFmpeg Cmd: {cmd[0]}") 
+            else:
+                await log_callback("⚠️ FFmpeg binary not configured!")
+        
+        # 在线程中运行的同步函数
+        def run_sync():
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True, 
+                encoding='utf-8',
+                errors='ignore'
+            )
+            buffer = ""
+            while True:
+                char = process.stderr.read(1)
+                if not char and process.poll() is not None:
+                    break
+                if char:
+                    buffer += char
+                    if char in ['\n', '\r']:
+                        line = buffer.strip()
+                        if line:
+                            # 过滤并推送
+                            if "frame=" in line or "time=" in line:
+                                # [关键] 使用传入的主线程 loop
+                                asyncio.run_coroutine_threadsafe(log_callback(f"[FFmpeg] {line}"), loop)
+                            elif "Error" in line:
+                                asyncio.run_coroutine_threadsafe(log_callback(f"⚠️ {line}"), loop)
+                        buffer = ""
+            return process.returncode
 
-    # --- 资源功能 ---
+        # 放到线程池执行
+        return await asyncio.to_thread(run_sync)
+
+    # --- 资源功能 (保持不变) ---
     def search_local_videos(self, tag):
         video_dir = os.path.join(self.ASSETS_DIR, "video")
         if not os.path.exists(video_dir): return []
@@ -211,49 +290,41 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     def download_video(self, query):
         key = self._get_key("pexels")
         if not key or "粘贴" in key: return None
-        print(f"🌐 Downloading: {query}")
         headers = {"Authorization": key, "User-Agent": "Mozilla/5.0"}
         url = f"https://api.pexels.com/videos/search?query={query}&per_page=1&orientation=landscape"
         try:
             r = requests.get(url, headers=headers, timeout=15)
             data = r.json()
             if not data.get('videos'): return None
-            vid_data = data['videos'][0]
-            raw_tags = vid_data.get('tags', [])
+            vid = data['videos'][0]
+            tags = vid.get('tags', [])
             tag_slug = self.sanitize_filename(query)
-            extra_tags = "_".join([self.sanitize_filename(t)[:10] for t in raw_tags[:5]])
-            fname = f"pexels_{vid_data['id']}_{tag_slug}_{extra_tags}.mp4"
+            extra = "_".join([self.sanitize_filename(t)[:10] for t in tags[:5]])
+            fname = f"pexels_{vid['id']}_{tag_slug}_{extra}.mp4"
             if len(fname) > 200: fname = fname[:200] + ".mp4"
-            video_files = vid_data['video_files']
-            target = next((vf['link'] for vf in video_files if vf['width']==1920), video_files[0]['link'])
-            content = requests.get(target, timeout=60).content
+            vfiles = vid['video_files']
+            target = next((vf['link'] for vf in vfiles if vf['width']==1920), vfiles[0]['link'])
+            c = requests.get(target, timeout=60).content
             path = os.path.join(self.ASSETS_DIR, "video", fname)
-            with open(path, 'wb') as f: f.write(content)
+            with open(path, 'wb') as f: f.write(c)
             return fname
-        except Exception as e:
-            print(f"DL Error: {e}")
-            return None
+        except: return None
 
     def download_video_by_url(self, download_url, video_id, tags):
         try:
-            print(f"🌐 Direct Downloading: ID {video_id}")
-            tag_slug = self.sanitize_filename(tags)
-            if len(tag_slug) > 50: tag_slug = tag_slug[:50]
+            tag_slug = self.sanitize_filename(tags)[:50]
             fname = f"pexels_{video_id}_{tag_slug}.mp4"
             path = os.path.join(self.ASSETS_DIR, "video", fname)
             if os.path.exists(path): return fname
             headers = {"User-Agent": "Mozilla/5.0"}
-            content = requests.get(download_url, headers=headers, timeout=120).content
-            with open(path, 'wb') as f: f.write(content)
-            print(f"✅ 下载完成: {fname}")
+            c = requests.get(download_url, headers=headers, timeout=120).content
+            with open(path, 'wb') as f: f.write(c)
             return fname
-        except Exception as e:
-            print(f"Direct DL Error: {e}")
-            return None
+        except: return None
 
     def search_online_videos(self, query):
         key = self._get_key("pexels")
-        if not key or "粘贴" in key: return {"error": "API Key 未配置"}
+        if not key or "粘贴" in key: return {"error": "API Key Missing"}
         headers = {"Authorization": key, "User-Agent": "Mozilla/5.0"}
         url = f"https://api.pexels.com/videos/search?query={query}&per_page=12&orientation=landscape"
         try:
@@ -270,62 +341,80 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 tags_str = query
                 if v.get('tags'): tags_str = v['tags'][0]
                 results.append({
-                    "type": "online",
-                    "id": v['id'],
-                    "src": preview,
-                    "download_url": download,
-                    "tags": tags_str,
-                    "name": f"Pexels ID: {v['id']}"
+                    "type": "online", "id": v['id'], "src": preview,
+                    "download_url": download, "tags": tags_str, "name": f"Pexels ID: {v['id']}"
                 })
             return results
-        except Exception as e:
-            return {"error": str(e)}
+        except Exception as e: return {"error": str(e)}
 
-    # --- 音效搜索 (MyInstants) ---
     def search_online_sfx(self, query):
-        print(f"🔊 Searching SFX: {query}")
         url = "https://www.myinstants.com/api/v1/instants/"
         params = {"name": query, "format": "json"}
         try:
             headers = {"User-Agent": "Mozilla/5.0"}
-            r = requests.get(url, params=params, headers=headers, timeout=15)
-            if r.status_code != 200: return {"error": f"API Error: {r.status_code}"}
+            r = requests.get(url, params=params, headers=headers, timeout=5)
             data = r.json()
             results = []
             for item in data.get('results', [])[:15]:
-                sound_url = item.get('sound')
-                if not sound_url: continue
+                sound = item.get('sound')
+                if not sound: continue
                 name = item.get('name', 'SFX').replace("'", "").replace('"', '')
                 results.append({
                     "id": str(random.randint(10000, 99999)),
                     "name": name,
                     "duration": 2,
-                    "download_url": sound_url, 
-                    "preview_url": sound_url 
+                    "download_url": sound, "preview_url": sound
                 })
             return results
-        except Exception as e:
-            return {"error": str(e)}
+        except: return {"error": "SFX Error"}
 
     def download_sfx_manual(self, query, download_url=None):
         sfx_dir = os.path.join(self.ASSETS_DIR, "sfx")
         if download_url:
             try:
-                base_name = f"auto_{self.sanitize_filename(query)}"
-                fname = f"{base_name}.mp3"
-                save_path = os.path.join(sfx_dir, fname)
-                if os.path.exists(save_path):
-                    fname = f"{base_name}_{random.randint(100,999)}.mp3"
-                    save_path = os.path.join(sfx_dir, fname)
-                print(f"🔊 下载音效 URL: {query}")
-                c = requests.get(download_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=30).content
-                with open(save_path, 'wb') as f: f.write(c)
+                base = f"auto_{self.sanitize_filename(query)}"
+                fname = f"{base}.mp3"
+                path = os.path.join(sfx_dir, fname)
+                if not os.path.exists(path):
+                    c = requests.get(download_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=30).content
+                    with open(path, 'wb') as f: f.write(c)
                 return fname
-            except Exception as e:
-                print(f"SFX DL Error: {e}")
-                return None
+            except: return None
         else:
             return self.get_dynamic_sfx(query, sfx_dir)
+
+    def get_dynamic_sfx(self, search_term, save_dir):
+        if not search_term: return None
+        local = [f for f in os.listdir(save_dir) if not f.startswith('.')]
+        for f in local:
+            if search_term.lower() in f.lower(): return os.path.join(save_dir, f)
+        
+        fallback = {
+            "whoosh": "https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3",
+            "ding": "https://assets.mixkit.co/active_storage/sfx/961/961-preview.mp3",
+            "boom": "https://assets.mixkit.co/active_storage/sfx/3004/3004-preview.mp3",
+            "keyboard": "https://assets.mixkit.co/active_storage/sfx/238/238-preview.mp3"
+        }
+        dl = None
+        for k,v in fallback.items():
+            if k in search_term.lower(): dl=v; break
+        if dl:
+            try:
+                c = requests.get(dl, headers={'User-Agent':'Mozilla/5.0'}).content
+                p = os.path.join(save_dir, f"auto_{self.sanitize_filename(search_term)}.mp3")
+                with open(p, 'wb') as f: f.write(c)
+                return p
+            except: pass
+        return None
+
+    def load_sfx_resource(self, sfx_query, sfx_dir):
+        if not sfx_query: return None
+        exact = os.path.join(sfx_dir, sfx_query)
+        if os.path.exists(exact): return exact
+        local = [f for f in os.listdir(sfx_dir) if not f.startswith('.')]
+        for f in local:
+            if sfx_query.lower() in f.lower(): return os.path.join(sfx_dir, f)
+        return None
 
     def get_video_clip_safe(self, video_info, duration, log_callback=None):
         video_path = None
@@ -369,46 +458,21 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
         try:
             vc = VideoFileClip(video_path)
-            # --- [核心修复] 强制视频逻辑 ---
-            # 1. 循环以满足时长
             if vc.duration < duration:
                 vc = vc.loop(duration=duration)
             else:
-                # 2. 随机截取
                 max_s = max(0, vc.duration - duration - 0.1)
                 s = random.uniform(0, max_s)
                 vc = vc.subclip(s, s+duration)
-            
-            # Resize
             vc = vc.resize(height=1080)
             if vc.w > 1920: vc = vc.crop(x1=vc.w/2-960, width=1920, height=1080)
             elif vc.w < 1920: vc = vc.resize(width=1920).crop(x1=0, y1=vc.h/2-540, width=1920, height=1080)
-            
             return vc
         except:
             return ColorClip(size=(1920, 1080), color=(0,0,0), duration=duration)
 
-    def get_dynamic_sfx(self, search_term, save_dir):
-        if not search_term: return None
-        local_files = [f for f in os.listdir(save_dir) if not f.startswith('.')]
-        for f in local_files:
-            if search_term.lower() in f.lower(): return os.path.join(save_dir, f)
-        return None
-        
-    def load_sfx_resource(self, sfx_query, sfx_dir):
-        """优先文件名精确查找，其次按关键词模糊查找"""
-        if not sfx_query: return None
-        exact_path = os.path.join(sfx_dir, sfx_query)
-        if os.path.exists(exact_path) and os.path.isfile(exact_path):
-            return exact_path
-        local_files = [f for f in os.listdir(sfx_dir) if not f.startswith('.')]
-        for f in local_files:
-            if sfx_query.lower() in f.lower():
-                return os.path.join(sfx_dir, f)
-        return None
-
     def analyze_script(self, text):
-        print(f"🤖 Calling LLM: {config.MODEL_NAME}...")
+        print(f"🤖 Calling LLM: {self.llm_model_name}...")
         prompt = f"""
         你是一个视频脚本专家。分析文案，返回严格 JSON 列表。
         
@@ -427,11 +491,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         Text: {text}
         """
         try:
-            r = ollama.chat(model=config.MODEL_NAME, messages=[{'role':'user','content':prompt}])
-            c = r['message']['content']
-            s = c.find('[')
-            e = c.rfind(']')+1
-            scenes = json.loads(c[s:e])
+            content = self._call_llm(prompt)
+            clean_content = re.sub(r'```json\s*', '', content)
+            clean_content = re.sub(r'```', '', clean_content).strip()
+            s = clean_content.find('[')
+            e = clean_content.rfind(']')+1
+            scenes = json.loads(clean_content[s:e])
             
             used_identifiers = set()
 
@@ -476,8 +541,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     # --- 渲染核心 ---
     async def render_project(self, params, output_file, log_callback=None):
+        # 获取主线程 loop，用于子线程回调
+        loop = asyncio.get_running_loop()
+        
         async def log(msg):
             print(msg)
+            # 关键：执行 server.py 传进来的回调
             if log_callback: await log_callback(msg)
 
         try:
@@ -508,6 +577,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             current_time = 0.0
             total_scenes = len(scene_data)
 
+            # [关键] 传入 loop 到 Logger
+            custom_logger = WebSocketLogger(log_callback, loop)
+
             for idx, scene in enumerate(scene_data):
                 text = scene['text']
                 voice = scene.get('voice', config.DEFAULT_VOICE)
@@ -522,15 +594,13 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 raw_text_clean = re.sub(r'[\(（].*?[\)）]', '', text).strip()
                 if not raw_text_clean: continue
 
-                # 【修复】使用智能分段
                 sub_chunks = self.smart_split_text(raw_text_clean, min_chars=15)
-                
                 scene_audio_clips = []
                 scene_total_duration = 0.0
                 
                 for sub_idx, chunk in enumerate(sub_chunks):
                     tts_text = chunk.strip()
-                    if not tts_text or re.match(r'^[，。！?？,!.、\s]+$', tts_text): continue
+                    if not tts_text: continue
                     tpath = os.path.join(self.TEMP_DIR, f"tts_{idx}_{sub_idx}.mp3")
                     
                     tts_success = False
@@ -574,32 +644,36 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 
                 final_audio = [combined_audio]
                 
-                # --- 【修复】音效加载 ---
                 if sfx:
-                    # 使用 load_sfx_resource 查找文件
-                    sp = self.load_sfx_resource(sfx, os.path.join(self.ASSETS_DIR, "sfx"))
-                    if sp: 
-                        await log(f"   🔊 添加音效: {os.path.basename(sp)}")
-                        try: final_audio.append(AudioFileClip(sp).volumex(0.6).set_start(0))
-                        except Exception as e: await log(f"   ⚠️ 音效加载失败: {e}")
+                    sp = self.download_sfx_manual(sfx)
+                    if sp:
+                         sp_path = os.path.join(self.ASSETS_DIR, "sfx", sp)
+                         try: 
+                             af = AudioFileClip(sp_path).volumex(0.6).set_start(0)
+                             final_audio.append(af)
+                             await log(f"   🔊 添加音效: {os.path.basename(sp)}")
+                         except: pass
                 
                 vc = self.get_video_clip_safe(video_info, scene_total_duration, log)
-                
-                # --- 【核心修复】强制视频时长 ---
-                vc = vc.set_duration(scene_total_duration) # 锁死时长
                 vc = vc.set_audio(CompositeAudioClip(final_audio))
                 
-                scene_out = os.path.join(self.TEMP_DIR, f"scene_{idx}.mov") # 使用 .mov + pcm_s16le
-                vc.write_videofile(
-                    scene_out, 
-                    fps=30, 
-                    preset="ultrafast", 
-                    logger=None, 
-                    codec="libx264", 
-                    audio_codec="pcm_s16le", 
-                    temp_audiofile=f"{self.TEMP_DIR}/temp_{idx}.wav", 
-                    remove_temp=True
-                )
+                scene_out = os.path.join(self.TEMP_DIR, f"scene_{idx}.mov")
+                
+                temp_audio_abs_path = os.path.join(self.TEMP_DIR, f"temp_{idx}.wav")
+
+                # --- [关键修复] 线程化写入 & 传递 loop ---
+                def write_segment():
+                    vc.write_videofile(
+                        scene_out, 
+                        fps=30, 
+                        preset="ultrafast", 
+                        logger=custom_logger, 
+                        codec="libx264", 
+                        audio_codec="pcm_s16le", 
+                        temp_audiofile=temp_audio_abs_path, 
+                        remove_temp=True
+                    )
+                await asyncio.to_thread(write_segment)
                 
                 vc.close()
                 combined_audio.close()
@@ -612,7 +686,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             with open(list_path, "w", encoding="utf-8") as f:
                 for p in scene_files: f.write(f"file '{os.path.abspath(p)}'\n")
             temp_concat = os.path.join(self.TEMP_DIR, "temp_concat.mov")
-            await self.run_ffmpeg_async(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", list_path, "-c", "copy", temp_concat], log_callback)
+            
+            # [关键修复] 传递 loop 给 ffmpeg_async
+            await self.run_ffmpeg_async(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", list_path, "-c", "copy", temp_concat], log_callback, loop)
             
             await log("🎵 混合BGM...")
             final_clip = VideoFileClip(temp_concat)
@@ -623,15 +699,16 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         bgm = AudioFileClip(bp).volumex(bgm_vol)
                         from moviepy.audio.fx.all import audio_loop
                         bgm = audio_loop(bgm, duration=final_clip.duration)
-                        if final_clip.audio:
-                            new_audio = CompositeAudioClip([final_clip.audio, bgm])
-                        else:
-                            new_audio = bgm
-                        final_clip = final_clip.set_audio(new_audio)
+                        final_clip = final_clip.set_audio(CompositeAudioClip([final_clip.audio, bgm]) if final_clip.audio else bgm)
                     except: pass
             
             temp_video_bgm = os.path.join(self.TEMP_DIR, "temp_with_bgm.mov")
-            final_clip.write_videofile(temp_video_bgm, fps=30, codec="libx264", audio_codec="pcm_s16le", temp_audiofile="temp_final.wav", remove_temp=True, logger=None)
+            
+            def write_bgm():
+                temp_final_wav_path = os.path.join(self.TEMP_DIR, "temp_final.wav")
+                final_clip.write_videofile(temp_video_bgm, fps=30, codec="libx264", audio_codec="pcm_s16le", temp_audiofile=temp_final_wav_path, remove_temp=True, logger=custom_logger)
+            await asyncio.to_thread(write_bgm)
+            
             final_clip.close()
 
             await log("📝 压制字幕与最终输出...")
@@ -644,13 +721,14 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             font_p = os.path.join(fdir, "font.ttf")
             vf = f"ass={ass_p}:fontsdir={fdir}" if os.path.exists(font_p) else f"ass={ass_p}"
             
+            # [关键修复] 传递 loop
             await self.run_ffmpeg_async([
                 "ffmpeg", "-y", "-i", temp_video_bgm, 
                 "-vf", vf, 
                 "-c:v", "libx264", "-preset", "fast", "-crf", "23", 
                 "-c:a", "aac", "-b:a", "192k", 
                 output_file
-            ], log_callback)
+            ], log_callback, loop)
             
             os.remove(temp_video_bgm); os.remove(temp_concat); os.remove(list_path); os.remove(ass_p)
             shutil.rmtree(self.TEMP_DIR); os.makedirs(self.TEMP_DIR, exist_ok=True)
