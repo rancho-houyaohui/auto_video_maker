@@ -1,0 +1,65 @@
+name: Build Desktop App
+
+on:
+  push:
+    tags:
+      - 'v*' # 当你推送 tag (如 v1.0) 时触发打包
+  workflow_dispatch: # 允许手动点击按钮触发
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            ffmpeg_url: https://evermeet.cx/ffmpeg/ffmpeg-115317-g26d7c5d9f0.zip
+            ffmpeg_bin: ffmpeg
+            asset_name: AI_Video_Station_Mac.dmg # 或 .app.zip
+          - os: windows-latest
+            ffmpeg_url: https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip
+            ffmpeg_bin: ffmpeg.exe
+            asset_name: AI_Video_Station_Win.exe
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller pywebview
+
+      - name: Setup FFmpeg (Mac)
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p bin
+          curl -L -o ffmpeg.zip ${{ matrix.ffmpeg_url }}
+          unzip ffmpeg.zip
+          mv ffmpeg bin/ffmpeg
+          chmod +x bin/ffmpeg
+          rm ffmpeg.zip
+
+      - name: Setup FFmpeg (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          mkdir bin
+          curl -L -o ffmpeg.zip ${{ matrix.ffmpeg_url }}
+          7z x ffmpeg.zip
+          move ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe bin\ffmpeg.exe
+          del ffmpeg.zip
+
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller AI_Video_Station.spec --clean --noconfirm
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.asset_name }}
+          path: dist/

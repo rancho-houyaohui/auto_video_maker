@@ -4,5 +4,6 @@ outputs
 temp_web
 dist
 build
+bin
 
 projects.json
