@@ -208,23 +208,26 @@ class VideoEngine:
         e_color = self.hex_to_ass_color(emp.get('color', '#FF0000'))
         e_outline = self.hex_to_ass_color(emp.get('outline', '#FFFFFF'))
 
+        # 在ASS格式中，字体名称需要使用完整字体文件名
+        font_name = "Alimama ShuHeiTi"
+
         header = f"""[Script Info]
-Title: Auto Video
-ScriptType: v4.00+
-WrapStyle: 0
-ScaledBorderAndShadow: yes
-YCbCr Matrix: TV.601
-PlayResX: 1920
-PlayResY: 1080
+        Title: Auto Video
+        ScriptType: v4.00+
+        WrapStyle: 0
+        ScaledBorderAndShadow: yes
+        YCbCr Matrix: TV.601
+        PlayResX: 1920
+        PlayResY: 1080
 
-[V4+ Styles]
-Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Normal,Arial,{n_size},{n_color},{n_color},{n_outline},&H80000000,1,0,0,0,100,100,0,0,1,3,2,2,30,30,60,1
-Style: Emphasis,Arial,{e_size},{e_color},{e_color},{e_outline},&H00000000,1,0,0,0,100,100,0,0,1,5,0,5,30,30,30,1
+        [V4+ Styles]
+        Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+        Style: Normal,{font_name},{n_size},{n_color},{n_color},{n_outline},&H80000000,1,0,0,0,100,100,0,0,1,3,2,2,30,30,60,1
+        Style: Emphasis,{font_name},{e_size},{e_color},{e_color},{e_outline},&H00000000,1,0,0,0,100,100,0,0,1,5,0,5,30,30,30,1
 
-[Events]
-Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
-"""
+        [Events]
+        Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+        """
         return header
 
     def format_ass_time(self, seconds):
