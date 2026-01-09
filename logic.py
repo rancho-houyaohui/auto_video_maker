@@ -715,29 +715,62 @@ class VideoEngine:
             final_clip.close()
 
             await log("📝 压制字幕与最终输出...")
+            
+            # 1. 写入 ASS 文件
             ass_str = self.generate_ass_header(sub_style)
             for l in subtitles_events: ass_str += l + "\n"
-            ass_p = os.path.join(self.TEMP_DIR, "s.ass")
+            
+            # 获取绝对路径，防止 FFmpeg 找不到
+            ass_p = os.path.abspath(os.path.join(self.TEMP_DIR, "s.ass"))
             with open(ass_p, "w", encoding="utf-8") as f: f.write(ass_str)
             
-            fdir = os.path.abspath(os.path.join(self.ASSETS_DIR, "fonts")).replace("\\", "/")
+            # 2. 准备字体路径
+            fdir = os.path.abspath(os.path.join(self.ASSETS_DIR, "fonts"))
             font_p = os.path.join(fdir, "font.ttf")
-            vf = f"ass={ass_p}:fontsdir={fdir}" if os.path.exists(font_p) else f"ass={ass_p}"
             
-            # [关键修复] 传递 loop
+            # --- [核心兼容性修复函数] ---
+            def format_ffmpeg_path(path):
+                # 1. 转绝对路径
+                # 2. 将 Windows 的反斜杠 \ 替换为 /
+                return os.path.abspath(path).replace("\\", "/")
+
+            # 处理所有路径
+            safe_ass_p = format_ffmpeg_path(ass_p)
+            safe_fdir = format_ffmpeg_path(fdir)
+            safe_input = format_ffmpeg_path(temp_video_bgm)
+            safe_output = format_ffmpeg_path(output_file)
+            
+            # --- [关键] 构造滤镜字符串 ---
+            # Windows 必须加单引号 '' 包裹路径，否则盘符冒号(C:)会被识别为分隔符
+            if os.path.exists(font_p):
+                vf = f"ass='{safe_ass_p}':fontsdir='{safe_fdir}'"
+            else:
+                # 字体不存在时的回退
+                await log("⚠️ 未检测到 assets/fonts/font.ttf，将使用系统回退字体。")
+                vf = f"ass='{safe_ass_p}'"
+            
+            # 3. 执行 FFmpeg
+            # 注意：-i 和 输出路径 不需要加引号，subprocess 会处理；
+            # 但 -vf 内部的路径必须加引号（上面已经加了）
             await self.run_ffmpeg_async([
-                "ffmpeg", "-y", "-i", temp_video_bgm, 
+                "ffmpeg", "-y", 
+                "-i", safe_input, 
                 "-vf", vf, 
                 "-c:v", "libx264", "-preset", "fast", "-crf", "23", 
                 "-c:a", "aac", "-b:a", "192k", 
-                output_file
+                safe_output
             ], log_callback, loop)
             
-            os.remove(temp_video_bgm); os.remove(temp_concat); os.remove(list_path); os.remove(ass_p)
-            shutil.rmtree(self.TEMP_DIR); os.makedirs(self.TEMP_DIR, exist_ok=True)
+            # 4. 清理与完成
+            try:
+                os.remove(temp_video_bgm); os.remove(temp_concat); os.remove(list_path); os.remove(ass_p)
+                shutil.rmtree(self.TEMP_DIR); os.makedirs(self.TEMP_DIR, exist_ok=True)
+            except: pass
             
             final_filename = os.path.basename(output_file)
+            # 注意：这里的 URL 是给前端用的，保持 web 路径格式 /outputs/...
             final_url = f"/outputs/{final_filename}"
+            
             await log(f"✅ 处理完成@@@{final_url}")
             return True
 
