@@ -15,9 +15,14 @@ def get_resource_path(relative_path):
         base_path = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(base_path, relative_path)
 
-# --- 自动识别 FFmpeg 路径 ---
+# --- 环境配置 ---
 system_name = platform.system() # 'Darwin' (Mac) or 'Windows'
 IS_FROZEN = getattr(sys, 'frozen', False) # 是否为打包环境
+
+# 环境类型：development (开发环境) 或 production (生产环境)
+# 开发环境：IS_FROZEN = False
+# 生产环境：IS_FROZEN = True
+ENVIRONMENT = 'production' if IS_FROZEN else 'development'
 
 FFMPEG_BINARY = None
 
@@ -68,11 +73,13 @@ if IS_FROZEN:
     # 打包模式：使用用户文档目录
     OUTPUT_DIR = os.path.join(USER_DOCS, "outputs")
     TEMP_DIR = os.path.join(USER_DOCS, "temp_web")
+    PROJECT_DB_FILE = os.path.join(USER_DOCS, "projects.json") 
 else:
     # 本地开发模式：使用项目根目录
     base_dir = os.path.dirname(os.path.abspath(__file__))
     OUTPUT_DIR = os.path.join(base_dir, "outputs")
     TEMP_DIR = os.path.join(base_dir, "temp_web")
+    PROJECT_DB_FILE = os.path.join(base_dir, "projects.json")
 
 # 确保目录存在 - 合并所有需要创建的目录，避免重复创建
 all_dirs = [USER_DOCS, OUTPUT_DIR, TEMP_DIR]
@@ -111,9 +118,9 @@ API_MODEL_NAME = "deepseek-chat"           # 模型名称
 
 # --- 默认音频设置 ---
 DEFAULT_VOICE = "zh-CN-YunxiNeural"  # 默认解说声音
-BGM_VOLUME = 0.1                     # 背景音乐音量
+BGM_VOLUME = 0.06                     # 背景音乐音量
 AUDIO_PADDING = 0                  # 句间停顿(秒)
-DEFAULT_TTS_RATE = "+10%"            # 默认语速
+DEFAULT_TTS_RATE = "+40%"            # 默认语速
 
 # --- 可选语音列表 (用于前端下拉菜单) ---
 # 格式: ("标识符", "显示名称")

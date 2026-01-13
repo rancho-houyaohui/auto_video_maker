@@ -17,38 +17,16 @@ from moviepy.audio.AudioClip import AudioArrayClip
 import numpy as np
 from openai import OpenAI
 
-#  MoviePy 判断使用内置 FFmpeg
-if config.FFMPEG_BINARY and os.path.exists(config.FFMPEG_BINARY):
+# 强制 MoviePy 使用内置 FFmpeg
+if os.path.exists(config.FFMPEG_BINARY):
     os.environ["IMAGEIO_FFMPEG_EXE"] = config.FFMPEG_BINARY
-else:
-    print(f"⚠️ Warning: FFmpeg path not resolved by config.")
 
 # 修复 PIL
 import PIL.Image
 if not hasattr(PIL.Image, 'ANTIALIAS'):
     PIL.Image.ANTIALIAS = PIL.Image.LANCZOS
 
-# --- 状态更新 Logger ---
-# 不再依赖 asyncio loop，直接调用 callback 更新内存
-class StatusLogger(proglog.ProgressBarLogger):
-    def __init__(self, callback):
-        super().__init__(init_state=None, bars=None, ignored_bars=None, logged_bars='all', min_time_interval=0, ignore_bars_under=0)
-        self.callback = callback
-    
-    def callback(self, **changes):
-        for (item, state) in changes.items():
-            if not isinstance(state, dict): continue
-            total = state.get('total')
-            index = state.get('index')
-            if total and index:
-                percent = int((index / total) * 100)
-                if percent % 2 == 0: 
-                    # 直接调用回调，传入百分比
-                    self.callback(message=f"⏳ 渲染中 ({item})...", percent=percent)
-
-    def message(self, message):
-        self.callback(message=f"[MoviePy] {message}")
-
+# --- 线程安全的 WebSocket Logger ---
 class WebSocketLogger(proglog.ProgressBarLogger):
     def __init__(self, log_callback, loop):
         super().__init__(init_state=None, bars=None, ignored_bars=None, logged_bars='all', min_time_interval=0, ignore_bars_under=0)
@@ -62,16 +40,13 @@ class WebSocketLogger(proglog.ProgressBarLogger):
             index = state.get('index')
             if total and index:
                 percent = int((index / total) * 100)
-                # 限制频率：每更新 2% 发送一次
-                if percent % 2 == 0: 
+                if percent % 5 == 0: 
                     msg = f"⏳ 渲染进度: {percent}%"
-                    # 必须使用 run_coroutine_threadsafe，因为这可能是在子线程运行
-                    if self.loop and self.loop.is_running():
-                         asyncio.run_coroutine_threadsafe(self.log_callback(msg), self.loop)
+                    asyncio.run_coroutine_threadsafe(self.log_callback(msg), self.loop)
 
     def message(self, message):
-        if self.loop and self.loop.is_running():
-            asyncio.run_coroutine_threadsafe(self.log_callback(f"[MoviePy] {message}"), self.loop)
+        asyncio.run_coroutine_threadsafe(self.log_callback(f"[MoviePy] {message}"), self.loop)
+
 
 class VideoEngine:
     def __init__(self):
@@ -89,7 +64,10 @@ class VideoEngine:
         else:
             self.llm_model_name = config.OLLAMA_MODEL
         
-        # 目录已经在config.py中创建，这里不再重复创建
+        for d in ["video", "sfx", "music", "fonts", "outputs"]: 
+            os.makedirs(os.path.join(self.ASSETS_DIR, d), exist_ok=True)
+        os.makedirs(self.TEMP_DIR, exist_ok=True)
+        os.makedirs(config.OUTPUT_DIR, exist_ok=True)
 
     def set_api_keys(self, pexels, pixabay):
         self.runtime_pexels_key = pexels.strip()
@@ -145,40 +123,84 @@ class VideoEngine:
                 print(f"❌ Ollama Error: {e}"); raise e
 
     def split_text_by_breath(self, text):
-        return self.smart_split_text(text)
+        # 默认最大宽度 18 个字 (超过就尝试在逗号处切开，如果没逗号，也会保留完整句子)
+        return self.smart_split_text(text, max_chars=18)
 
-    def smart_split_text(self, text, min_chars=15):
+    # --- [核心优化] 智能贪婪合并分段算法 ---
+    def smart_split_text(self, text, max_chars=18):
+        """
+        策略：
+        1. 优先合并：尽可能把短句拼成长句，直到超过 max_chars。
+        2. 逻辑断句：遇到强结束符(。？！)必须断开。
+        3. 弱断句：遇到逗号时，如果当前缓冲区已经够长了，就断开；否则继续拼。
+        """
         text = text.replace("\n", " ").strip()
+        # 剥离包裹符号
+        text = text.strip('"').strip("'").strip('“').strip('”').strip('(').strip(')').strip('（').strip('）')
         if not text: return []
-        text = text.replace("...", "@@ELLIPSIS@@")
-        sentences = re.split(r'([。！？!?;；]+)', text)
-        final_chunks = []
-        current_chunk = ""
-        for part in sentences:
-            part = part.replace("@@ELLIPSIS@@", "...")
-            if re.match(r'^[。！？!?;；]+$', part):
-                current_chunk += part
-                if current_chunk.strip(): final_chunks.append(current_chunk.strip())
-                current_chunk = ""
-                continue
-            temp = current_chunk + part
-            if len(temp) < min_chars * 2: current_chunk += part
-            else: current_chunk += part
-        if current_chunk.strip(): final_chunks.append(current_chunk.strip())
         
-        refined = []
+        text = text.replace("...", "@@ELLIPSIS@@")
+        
+        # 1. 先按所有标点切成“原子” (Atom)，保留标点
+        # 例如: "你好，世界。" -> ["你好", "，", "世界", "。"]
+        atoms = re.split(r'([，。！?？,!.、;；：:]+)', text)
+        
+        # 2. 重组原子为带标点的片段
+        # -> ["你好，", "世界。"]
+        segments = []
+        current_segment = ""
+        for item in atoms:
+            if not item: continue
+            current_segment += item
+            # 如果 item 包含标点，说明这个 segment 结束了
+            if re.search(r'[，。！?？,!.、;；：:]+', item):
+                segments.append(current_segment)
+                current_segment = ""
+        if current_segment: segments.append(current_segment)
+        
+        # 3. 贪婪合并逻辑
+        final_chunks = []
+        current_buffer = ""
+        
+        for seg in segments:
+            # 还原省略号
+            seg = seg.replace("@@ELLIPSIS@@", "...")
+            
+            # 判断是否包含强结束符 (句号/问号/感叹号)
+            is_strong_end = bool(re.search(r'[。！？!?]', seg))
+            
+            # 预测合并后的长度
+            # 如果 (当前缓存 + 新片段) 超过限制，且当前缓存不为空 -> 先结算当前缓存
+            if len(current_buffer) + len(seg) > max_chars:
+                if current_buffer:
+                    final_chunks.append(current_buffer.strip())
+                    current_buffer = ""
+            
+            current_buffer += seg
+            
+            # 如果遇到强结束符，必须立刻结算 (不跨句合并)
+            if is_strong_end:
+                final_chunks.append(current_buffer.strip())
+                current_buffer = ""
+                
+        # 结算剩余
+        if current_buffer.strip():
+            final_chunks.append(current_buffer.strip())
+            
+        # 4. 二次校验：如果某一段太长且没有标点 (极少见)，强制切分 (防止溢出屏幕)
+        # 这里设置为 25 字强切
+        refined_chunks = []
         for chunk in final_chunks:
             if len(chunk) > 25:
-                commas = re.split(r'([，,])', chunk)
-                sub_buf = ""
-                for frag in commas:
-                    if re.match(r'[，,]', frag):
-                        sub_buf += frag
-                        if len(sub_buf) > 10: refined.append(sub_buf); sub_buf = ""
-                    else: sub_buf += frag
-                if sub_buf: refined.append(sub_buf)
-            else: refined.append(chunk)
-        return [c for c in refined if c.strip()]
+                 # 暴力对半切
+                 mid = len(chunk) // 2
+                 refined_chunks.append(chunk[:mid])
+                 refined_chunks.append(chunk[mid:])
+            else:
+                refined_chunks.append(chunk)
+
+        # 5. 过滤掉纯标点的无效片段
+        return [c for c in refined_chunks if re.search(r'[\u4e00-\u9fa5a-zA-Z0-9]', c)]
 
     def hex_to_ass_color(self, hex_color):
         hex_color = str(hex_color).lstrip('#')
@@ -201,15 +223,12 @@ class VideoEngine:
     def generate_ass_header(self, style_config):
         norm = style_config.get('normal', {})
         emp = style_config.get('emphasis', {})
-        n_size = norm.get('size', 85)
+        n_size = norm.get('size', 100)
         n_color = self.hex_to_ass_color(norm.get('color', '#FFFFFF'))
         n_outline = self.hex_to_ass_color(norm.get('outline', '#000000'))
-        e_size = emp.get('size', 140)
+        e_size = emp.get('size', 180)
         e_color = self.hex_to_ass_color(emp.get('color', '#FF0000'))
         e_outline = self.hex_to_ass_color(emp.get('outline', '#FFFFFF'))
-
-        # 在ASS格式中，字体名称需要使用完整字体文件名
-        font_name = "Alimama ShuHeiTi"
 
         header = f"""[Script Info]
         Title: Auto Video
@@ -222,8 +241,9 @@ class VideoEngine:
 
         [V4+ Styles]
         Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-        Style: Normal,{font_name},{n_size},{n_color},{n_color},{n_outline},&H80000000,1,0,0,0,100,100,0,0,1,3,2,2,30,30,60,1
-        Style: Emphasis,{font_name},{e_size},{e_color},{e_color},{e_outline},&H00000000,1,0,0,0,100,100,0,0,1,5,0,5,30,30,30,1
+        Style: Normal,Arial,{n_size},{n_color},{n_color},{n_outline},&H80000000,1,0,0,0,100,100,0,0,1,4,0,2,30,30,450,1
+        Style: Emphasis,Arial,{e_size},{e_color},{e_color},{e_outline},&H00000000,1,0,0,0,100,100,0,0,1,6,0,5,30,30,350,1
+        Style: Yellow,Arial,{e_size},{e_color},{e_color},{e_outline},&H00000000,1,0,0,0,100,100,0,0,1,5,0,5,30,30,350,1
 
         [Events]
         Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -238,48 +258,34 @@ class VideoEngine:
         return f"{h}:{m:02d}:{s:02d}.{cs:02d}"
 
     def clean_for_subtitle(self, text):
-        return re.sub(r'[，。！?？,!.、\s]+$', '', text)
+        return re.sub(r'[，。！?？,!.、;；：:\"\'“”\[\]【】]+', ' ', text).strip()
 
-    # --- 异步执行 FFmpeg (传递 loop 解决 RuntimeError) ---
     async def run_ffmpeg_async(self, cmd, log_callback, loop):
         if cmd[0] == "ffmpeg":
-            if config.FFMPEG_BINARY:
+            if os.path.exists(config.FFMPEG_BINARY):
                 cmd[0] = config.FFMPEG_BINARY
-                # 仅在第一次或调试时打印，避免刷屏
-                # print(f"🔧 FFmpeg Cmd: {cmd[0]}") 
-            else:
-                await log_callback("⚠️ FFmpeg binary not configured!")
         
-        # 在线程中运行的同步函数
         def run_sync():
             process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                universal_newlines=True, 
-                encoding='utf-8',
-                errors='ignore'
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                universal_newlines=True, encoding='utf-8', errors='ignore'
             )
             buffer = ""
             while True:
                 char = process.stderr.read(1)
-                if not char and process.poll() is not None:
-                    break
+                if not char and process.poll() is not None: break
                 if char:
                     buffer += char
                     if char in ['\n', '\r']:
                         line = buffer.strip()
                         if line:
-                            # 过滤并推送
                             if "frame=" in line or "time=" in line:
-                                # [关键] 使用传入的主线程 loop
                                 asyncio.run_coroutine_threadsafe(log_callback(f"[FFmpeg] {line}"), loop)
                             elif "Error" in line:
                                 asyncio.run_coroutine_threadsafe(log_callback(f"⚠️ {line}"), loop)
                         buffer = ""
             return process.returncode
 
-        # 放到线程池执行
         return await asyncio.to_thread(run_sync)
 
     # --- 资源功能 (保持不变) ---
@@ -306,7 +312,7 @@ class VideoEngine:
             fname = f"pexels_{vid['id']}_{tag_slug}_{extra}.mp4"
             if len(fname) > 200: fname = fname[:200] + ".mp4"
             vfiles = vid['video_files']
-            target = next((vf['link'] for vf in vfiles if vf['width']==1920), vfiles[0]['link'])
+            target = next((vf['link'] for vf in video_files if vf['width']==1920), vfiles[0]['link'])
             c = requests.get(target, timeout=60).content
             path = os.path.join(self.ASSETS_DIR, "video", fname)
             with open(path, 'wb') as f: f.write(c)
@@ -350,6 +356,7 @@ class VideoEngine:
             return results
         except Exception as e: return {"error": str(e)}
 
+    # --- 音效搜索 (MyInstants) ---
     def search_online_sfx(self, query):
         url = "https://www.myinstants.com/api/v1/instants/"
         params = {"name": query, "format": "json"}
@@ -364,9 +371,7 @@ class VideoEngine:
                 name = item.get('name', 'SFX').replace("'", "").replace('"', '')
                 results.append({
                     "id": str(random.randint(10000, 99999)),
-                    "name": name,
-                    "duration": 2,
-                    "download_url": sound, "preview_url": sound
+                    "name": name, "duration": 2, "download_url": sound, "preview_url": sound
                 })
             return results
         except: return {"error": "SFX Error"}
@@ -461,12 +466,18 @@ class VideoEngine:
 
         try:
             vc = VideoFileClip(video_path)
+            # 压暗
+            vc = vc.fx(vfx.colorx, 0.7)
+            vc = vc.without_audio()
+
             if vc.duration < duration:
                 vc = vc.loop(duration=duration)
             else:
                 max_s = max(0, vc.duration - duration - 0.1)
                 s = random.uniform(0, max_s)
                 vc = vc.subclip(s, s+duration)
+            
+            vc = vc.set_duration(duration)
             vc = vc.resize(height=1080)
             if vc.w > 1920: vc = vc.crop(x1=vc.w/2-960, width=1920, height=1080)
             elif vc.w < 1920: vc = vc.resize(width=1920).crop(x1=0, y1=vc.h/2-540, width=1920, height=1080)
@@ -476,22 +487,34 @@ class VideoEngine:
 
     def analyze_script(self, text):
         print(f"🤖 Calling LLM: {self.llm_model_name}...")
+        
+        # 1. Python 先拆好
+        text_clean_for_split = re.sub(r'[\(（].*?[\)）]', '', text).strip()
+        
+        # [核心优化 1] 分词逻辑入口
+        pre_split_segments = self.smart_split_text(text_clean_for_split, max_chars=18)
+        
+        if not pre_split_segments: return []
+        segments_json = json.dumps(pre_split_segments, ensure_ascii=False)
+
         prompt = f"""
-        你是一个视频脚本专家。分析文案，返回严格 JSON 列表。
+        你是一个JSON转换器。任务是为输入的每一句文案匹配**英文画面关键词**和**音效**。
         
-        【规则】
-        1. **visual_tags**: 必须是**英文**单词！用于搜索视频。(如: "business man", "future city", "ai robot")。
-           - 必须根据每一句话的具体意象联想。
-        2. text: 严禁修改原文。
-        3. keywords: 1-3个中文重点词，逗号分隔。
-        4. is_emphasis: 标题/金句为true。
-        5. sfx_search: 音效(whoosh/ding/boom)。
+        【输入数据】
+        {segments_json}
         
-        格式:
+        【输出要求】
+        1. "visual_tags": 提取句子中的实体名词，翻译成 1-2 个**英文单词** (用于搜视频)。不要用抽象词。
+        2. "keywords": 提取句子中 1-3 个字的**中文重点词** (用于字幕高亮)。
+        3. "sfx_search": 音效。**只有**当句子包含"震惊、转折、强调、疑问"语气时才填 (whoosh/ding/boom/pop)，**普通叙述请留空字符串**，不要每句都填！
+        4. "is_emphasis": 是否为标题或金句 (true/false)。
+        5. "sfx_search": 对于金句选择音效，仅限从以下选择: whoosh, ding, boom, keyboard, pop。
+        
+        【输出示例】
         [
-          {{"text": "原文", "keywords": "重点", "is_emphasis": false, "visual_tags": ["tag_en"], "sfx_search": ""}}
+          {{"text": "第一句文案", "keywords": "重点", "is_emphasis": false, "visual_tags": ["tag1", "tag2"], "sfx_search": "whoosh"}},
+          {{"text": "第二句文案", "keywords": "核心", "is_emphasis": true, "visual_tags": ["tag3", "tag4"], "sfx_search": "boom"}}
         ]
-        Text: {text}
         """
         try:
             content = self._call_llm(prompt)
@@ -502,16 +525,29 @@ class VideoEngine:
             scenes = json.loads(clean_content[s:e])
             
             used_identifiers = set()
+            final_scenes = []
+            
+            for i, original_text in enumerate(pre_split_segments):
+                scene_data = {}
+                if i < len(scenes):
+                    scene_data = scenes[i]
+                else:
+                    scene_data = {"visual_tags": ["abstract"], "keywords": "", "sfx_search": ""}
+                
+                # 强制回填原文
+                scene_data['text'] = original_text
+                
+                kw = scene_data.get('keywords')
+                if isinstance(kw, list): scene_data['keywords'] = ", ".join([str(k) for k in kw])
+                elif kw is None: scene_data['keywords'] = ""
+                else: scene_data['keywords'] = str(kw)
 
-            for scene in scenes:
-                kw = scene.get('keywords')
-                if isinstance(kw, list): scene['keywords'] = ", ".join([str(k) for k in kw])
-                elif kw is None: scene['keywords'] = ""
-                else: scene['keywords'] = str(kw)
+                # 默认不加音效
+                if 'sfx_search' not in scene_data: scene_data['sfx_search'] = ""
 
-                tags = scene.get('visual_tags', [])
-                scene['voice'] = config.DEFAULT_VOICE
-                scene['video_info'] = {"type": "local", "src": "", "name": "random"} 
+                tags = scene_data.get('visual_tags', [])
+                scene_data['voice'] = config.DEFAULT_VOICE
+                scene_data['video_info'] = {"type": "local", "src": "", "name": "random"} 
                 
                 if tags:
                     search_query = tags[0]
@@ -524,7 +560,7 @@ class VideoEngine:
                                 used_identifiers.add(str(vid['id']))
                                 break
                         if not selected_vid: selected_vid = random.choice(online_info)
-                        scene['video_info'] = selected_vid
+                        scene_data['video_info'] = selected_vid
                     else:
                         local = self.search_local_videos(search_query)
                         if local:
@@ -536,20 +572,27 @@ class VideoEngine:
                                     used_identifiers.add(f)
                                     break
                             if not target: target = random.choice(local)
-                            scene['video_info'] = {"type": "local", "name":target, "src":f"/static/video/{target}"}
-            return scenes
+                            scene_data['video_info'] = {"type": "local", "name":target, "src":f"/static/video/{target}"}
+                
+                final_scenes.append(scene_data)
+
+            return final_scenes
         except Exception as e:
             print(f"LLM Error: {e}")
-            return [{"text": text, "visual_tags": ["abstract"], "keywords":"", "sfx_search":"", "is_emphasis": False, "video_info": {"type":"local","name":"random"}}]
+            fallback_scenes = []
+            for t in pre_split_segments:
+                fallback_scenes.append({
+                    "text": t, "visual_tags": ["abstract"], "keywords":"", "sfx_search":"", 
+                    "is_emphasis": False, "video_info": {"type":"local","name":"random"}
+                })
+            return fallback_scenes
 
     # --- 渲染核心 ---
     async def render_project(self, params, output_file, log_callback=None):
-        # 获取主线程 loop，用于子线程回调
         loop = asyncio.get_running_loop()
         
         async def log(msg):
             print(msg)
-            # 关键：执行 server.py 传进来的回调
             if log_callback: await log_callback(msg)
 
         try:
@@ -557,7 +600,7 @@ class VideoEngine:
             scene_data = params['scenes']
             bgm_file = params.get('bgm_file', '')
             bgm_vol = float(params.get('bgm_volume', 0.1))
-            global_padding = float(params.get('audio_padding', 0.2)) 
+            global_padding = float(params.get('audio_padding', 0)) 
             tts_rate = params.get('tts_rate', config.DEFAULT_TTS_RATE)
             sub_style = params.get('subtitle_style', {})
 
@@ -580,7 +623,6 @@ class VideoEngine:
             current_time = 0.0
             total_scenes = len(scene_data)
 
-            # [关键] 传入 loop 到 Logger
             custom_logger = WebSocketLogger(log_callback, loop)
 
             for idx, scene in enumerate(scene_data):
@@ -597,53 +639,72 @@ class VideoEngine:
                 raw_text_clean = re.sub(r'[\(（].*?[\)）]', '', text).strip()
                 if not raw_text_clean: continue
 
-                sub_chunks = self.smart_split_text(raw_text_clean, min_chars=15)
+                sub_chunks = self.smart_split_text(raw_text_clean, max_chars=15)
                 scene_audio_clips = []
                 scene_total_duration = 0.0
                 
                 for sub_idx, chunk in enumerate(sub_chunks):
                     tts_text = chunk.strip()
-                    if not tts_text: continue
+                    
+                    if not tts_text or not re.search(r'[\u4e00-\u9fa5a-zA-Z0-9]', tts_text):
+                        continue
+
                     tpath = os.path.join(self.TEMP_DIR, f"tts_{idx}_{sub_idx}.mp3")
                     
                     tts_success = False
                     for _ in range(3):
                         try:
                             await edge_tts.Communicate(tts_text, voice, rate=tts_rate).save(tpath)
-                            if os.path.exists(tpath) and os.path.getsize(tpath) > 100:
+                            if os.path.exists(tpath) and os.path.getsize(tpath) > 1024:
                                 tts_success = True; break
                         except: await asyncio.sleep(1)
                     
                     if not tts_success:
-                        ac = AudioArrayClip(np.zeros((44100, 2)), fps=44100).set_duration(1.0)
+                        ac = AudioArrayClip(np.zeros((44100, 2)), fps=44100).set_duration(0.1)
+                        await log(f"⚠️ TTS失败，跳过: {tts_text[:5]}")
                     else:
-                        ac = AudioFileClip(tpath)
+                        try:
+                            ac = AudioFileClip(tpath).volumex(1.5)
+                        except:
+                            ac = AudioArrayClip(np.zeros((44100, 2)), fps=44100).set_duration(0.1)
 
                     chunk_dur = ac.duration + scene_padding
                     scene_audio_clips.append(ac.set_start(scene_total_duration))
                     
                     start_s = self.format_ass_time(current_time + scene_total_duration)
                     end_s = self.format_ass_time(current_time + scene_total_duration + chunk_dur)
+                    
                     disp = self.clean_for_subtitle(chunk)
                     
-                    if is_emphasis:
-                        content = disp
-                        ass_l = f"Dialogue: 0,{start_s},{end_s},Emphasis,,0,0,0,,{{\\fad(50,0)}}{content}"
-                        subtitles_events.append(ass_l)
-                    else:
-                        if disp:
-                            final_t = disp
-                            if keywords: final_t = self.apply_ass_highlight(disp, keywords, ass_color_highlight, ass_color_normal)
-                            ass_l = f"Dialogue: 0,{start_s},{end_s},Normal,,0,0,0,,{{\\fad(80,80)}}{final_t}"
+                    if disp:
+                        if is_emphasis:
+                            # 1. 霸屏模式
+                            content = disp
+                            # 如果字数太多，自动换行
+                            if len(content) > 8:
+                                content = content[:8] + "\\N" + content[8:]
+                                
+                            ass_l = f"Dialogue: 1,{start_s},{end_s},Emphasis,,0,0,0,,{{\\fad(50,0)}}{content}"
                             subtitles_events.append(ass_l)
+                        else:
+                            # 2. 普通模式 (双轨)
+                            ass_bottom = f"Dialogue: 1,{start_s},{end_s},Normal,,0,0,0,,{{\\fad(80,80)}}{disp}"
+                            subtitles_events.append(ass_bottom)
+                            
+                            # if keywords:
+                            #     kws = [k.strip() for k in re.split(r'[,，]', keywords) if k.strip()]
+                            #     if kws:
+                            #         kw_str = "\\N".join(kws) if len(kws)>1 or sum(len(k) for k in kws)>8 else "  ".join(kws)
+                            #         ass_center = f"Dialogue: 1,{start_s},{end_s},Emphasis,,0,0,0,,{{\\fad(50,50)}}{kw_str}"
+                            #         subtitles_events.append(ass_center)
                     
                     scene_total_duration += chunk_dur
 
                 if not scene_audio_clips:
-                    scene_total_duration = 2.0
-                    combined_audio = AudioArrayClip(np.zeros((int(44100*2), 2)), fps=44100)
-                else:
-                    combined_audio = CompositeAudioClip(scene_audio_clips).set_duration(scene_total_duration)
+                    await log(f"⚠️ 跳过无效分镜 {idx+1}")
+                    continue
+
+                combined_audio = CompositeAudioClip(scene_audio_clips).set_duration(scene_total_duration)
                 
                 final_audio = [combined_audio]
                 
@@ -656,15 +717,34 @@ class VideoEngine:
                              final_audio.append(af)
                              await log(f"   🔊 添加音效: {os.path.basename(sp)}")
                          except: pass
-                
+
                 vc = self.get_video_clip_safe(video_info, scene_total_duration, log)
-                vc = vc.set_audio(CompositeAudioClip(final_audio))
                 
+                # --- [核心修复：物理截取视频] ---
+                # 1. 确保视频被物理截断到指定时长
+                # get_video_clip_safe 内部虽然有 subclip，但为了保险，这里再次强制执行
+                # 如果视频比音频长，强制截取前 scene_total_duration 秒
+                if vc.duration > scene_total_duration:
+                    # 随机找一个起点 (或者从头开始)
+                    # 注意：get_video_clip_safe 已经做过随机了，这里直接截取 0 到 end 即可
+                    vc = vc.subclip(0, scene_total_duration)
+                elif vc.duration < scene_total_duration:
+                    # 如果视频不够长，循环播放
+                    vc = vc.loop(duration=scene_total_duration)
+                
+                # 2. 再次显式设置 duration (双重保险)
+                vc = vc.set_duration(scene_total_duration)
+                
+                # 3. 移除原声 (防止素材自带声音干扰)
+                vc = vc.without_audio()
+                
+                # 4. 合成音频
+                final_audio_clip = CompositeAudioClip(final_audio).set_duration(scene_total_duration)
+                vc = vc.set_audio(final_audio_clip)
+                
+                # 5. 写入文件
                 scene_out = os.path.join(self.TEMP_DIR, f"scene_{idx}.mov")
                 
-                temp_audio_abs_path = os.path.join(self.TEMP_DIR, f"temp_{idx}.wav")
-
-                # --- [关键修复] 线程化写入 & 传递 loop ---
                 def write_segment():
                     vc.write_videofile(
                         scene_out, 
@@ -673,9 +753,10 @@ class VideoEngine:
                         logger=custom_logger, 
                         codec="libx264", 
                         audio_codec="pcm_s16le", 
-                        temp_audiofile=temp_audio_abs_path, 
+                        temp_audiofile=f"{self.TEMP_DIR}/temp_{idx}.wav", 
                         remove_temp=True
                     )
+                
                 await asyncio.to_thread(write_segment)
                 
                 vc.close()
@@ -687,11 +768,17 @@ class VideoEngine:
             await log("🔗 缝合视频...")
             list_path = os.path.join(self.TEMP_DIR, "concat.txt")
             with open(list_path, "w", encoding="utf-8") as f:
-                for p in scene_files: f.write(f"file '{os.path.abspath(p)}'\n")
+                for p in scene_files:
+                    safe_p = os.path.abspath(p).replace("\\", "/")
+                    f.write(f"file '{safe_p}'\n")
+
             temp_concat = os.path.join(self.TEMP_DIR, "temp_concat.mov")
             
-            # [关键修复] 传递 loop 给 ffmpeg_async
-            await self.run_ffmpeg_async(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", list_path, "-c", "copy", temp_concat], log_callback, loop)
+            def format_p(path): return os.path.abspath(path).replace("\\", "/")
+            safe_concat = format_p(temp_concat)
+            safe_list = format_p(list_path)
+
+            await self.run_ffmpeg_async(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", safe_list, "-c", "copy", safe_concat], log_callback, loop)
             
             await log("🎵 混合BGM...")
             final_clip = VideoFileClip(temp_concat)
@@ -708,69 +795,42 @@ class VideoEngine:
             temp_video_bgm = os.path.join(self.TEMP_DIR, "temp_with_bgm.mov")
             
             def write_bgm():
-                temp_final_wav_path = os.path.join(self.TEMP_DIR, "temp_final.wav")
-                final_clip.write_videofile(temp_video_bgm, fps=30, codec="libx264", audio_codec="pcm_s16le", temp_audiofile=temp_final_wav_path, remove_temp=True, logger=custom_logger)
-            await asyncio.to_thread(write_bgm)
+                final_clip.write_videofile(temp_video_bgm, fps=30, codec="libx264", audio_codec="pcm_s16le", temp_audiofile="temp_final.wav", remove_temp=True, logger=custom_logger)
             
+            await asyncio.to_thread(write_bgm)
             final_clip.close()
 
             await log("📝 压制字幕与最终输出...")
-            
-            # 1. 写入 ASS 文件
             ass_str = self.generate_ass_header(sub_style)
             for l in subtitles_events: ass_str += l + "\n"
             
-            # 获取绝对路径，防止 FFmpeg 找不到
             ass_p = os.path.abspath(os.path.join(self.TEMP_DIR, "s.ass"))
             with open(ass_p, "w", encoding="utf-8") as f: f.write(ass_str)
             
-            # 2. 准备字体路径
             fdir = os.path.abspath(os.path.join(self.ASSETS_DIR, "fonts"))
             font_p = os.path.join(fdir, "font.ttf")
             
-            # --- [核心兼容性修复函数] ---
-            def format_ffmpeg_path(path):
-                # 1. 转绝对路径
-                # 2. 将 Windows 的反斜杠 \ 替换为 /
-                return os.path.abspath(path).replace("\\", "/")
-
-            # 处理所有路径
-            safe_ass_p = format_ffmpeg_path(ass_p)
-            safe_fdir = format_ffmpeg_path(fdir)
-            safe_input = format_ffmpeg_path(temp_video_bgm)
-            safe_output = format_ffmpeg_path(output_file)
+            safe_ass = format_p(ass_p)
+            safe_fdir = format_p(fdir)
+            safe_in = format_p(temp_video_bgm)
+            safe_out = format_p(output_file)
             
-            # --- [关键] 构造滤镜字符串 ---
-            # Windows 必须加单引号 '' 包裹路径，否则盘符冒号(C:)会被识别为分隔符
-            if os.path.exists(font_p):
-                vf = f"ass='{safe_ass_p}':fontsdir='{safe_fdir}'"
-            else:
-                # 字体不存在时的回退
-                await log("⚠️ 未检测到 assets/fonts/font.ttf，将使用系统回退字体。")
-                vf = f"ass='{safe_ass_p}'"
+            vf = f"ass='{safe_ass}':fontsdir='{safe_fdir}'" if os.path.exists(font_p) else f"ass='{safe_ass}'"
             
-            # 3. 执行 FFmpeg
-            # 注意：-i 和 输出路径 不需要加引号，subprocess 会处理；
-            # 但 -vf 内部的路径必须加引号（上面已经加了）
             await self.run_ffmpeg_async([
                 "ffmpeg", "-y", 
-                "-i", safe_input, 
+                "-i", safe_in, 
                 "-vf", vf, 
                 "-c:v", "libx264", "-preset", "fast", "-crf", "23", 
                 "-c:a", "aac", "-b:a", "192k", 
-                safe_output
+                safe_out
             ], log_callback, loop)
             
-            # 4. 清理与完成
-            try:
-                os.remove(temp_video_bgm); os.remove(temp_concat); os.remove(list_path); os.remove(ass_p)
-                shutil.rmtree(self.TEMP_DIR); os.makedirs(self.TEMP_DIR, exist_ok=True)
-            except: pass
+            os.remove(temp_video_bgm); os.remove(temp_concat); os.remove(list_path); os.remove(ass_p)
+            shutil.rmtree(self.TEMP_DIR); os.makedirs(self.TEMP_DIR, exist_ok=True)
             
             final_filename = os.path.basename(output_file)
-            # 注意：这里的 URL 是给前端用的，保持 web 路径格式 /outputs/...
             final_url = f"/outputs/{final_filename}"
-            
             await log(f"✅ 处理完成@@@{final_url}")
             return True
 

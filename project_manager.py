@@ -5,7 +5,7 @@ import uuid
 import config  # [核心修改] 引入配置以获取用户文档路径
 
 # [核心修改] 数据库文件必须存在用户文档目录下，不能存放在 app 内部
-PROJECT_DB_FILE = os.path.join(config.USER_DOCS, "projects.json")
+PROJECT_DB_FILE = config.PROJECT_DB_FILE
 
 class ProjectManager:
     def __init__(self):

@@ -1,1 +1,1338 @@
-[]
+[
+  {
+    "id": "66bea88a",
+    "title": "高功能自卑：为什么我明明能扛事，却始终觉得自己不够格",
+    "script": "有一种自卑，\n外人几乎看不出来。\n\n你能扛事，\n能救场，\n出问题的时候，\n大家第一个想到你。\n\n可只要事情结束，\n你心里冒出来的不是成就感，\n而是一句：\n“这也没什么了不起。”\n\n你会下意识把功劳让出去，\n把标准抬代表现得更好的人，\n然后把自己放在\n“刚好及格”的位置。\n\n后来我才意识到，\n这不是能力问题，\n而是一种\n高功能自卑。\n\n你之所以能扛，\n正是因为你\n一直在用更高的标准\n对待自己。\n\n但问题是，\n你把“能做到”，\n当成了“不值一提”，\n把“已经很好”，\n当成了“还不够格”。\n\n所以你越能撑场面，\n越不敢站到台前；\n越被依赖，\n越不敢承认自己重要。\n\n这不是谦虚，\n而是\n你从很早开始，\n就不被允许\n为自己感到骄傲。",
+    "cover_path": "2026-01-11T22:00",
+    "video_path": "",
+    "status": "draft",
+    "publish_time": "",
+    "created_at": 1767861588.923394,
+    "scenes_data": [
+      {
+        "text": "有一种自卑，外人几乎看不出来。",
+        "keywords": "自卑, 隐形",
+        "is_emphasis": false,
+        "visual_tags": [
+          "subtle man",
+          "hidden insecurity"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 4985551,
+          "src": "https://videos.pexels.com/video-files/4985551/4985551-sd_640_360_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/4985551/4985551-hd_1920_1080_25fps.mp4",
+          "tags": "subtle man",
+          "name": "Pexels ID: 4985551"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "你能扛事，能救场，出问题的时候，大家第一个想到你。",
+        "keywords": "担当, 救场",
+        "is_emphasis": false,
+        "visual_tags": [
+          "capable man",
+          "reliable friend"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 6610315,
+          "src": "https://videos.pexels.com/video-files/6610315/6610315-sd_640_360_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/6610315/6610315-hd_1920_1080_25fps.mp4",
+          "tags": "capable man",
+          "name": "Pexels ID: 6610315"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "可只要事情结束，你心里冒出来的不是成就感，而是一句：‘这也没什么了不起。’",
+        "keywords": "成就感, 低调",
+        "is_emphasis": false,
+        "visual_tags": [
+          "self-deprecating man",
+          "understanding"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 35329753,
+          "src": "https://videos.pexels.com/video-files/35329753/14969313_640_360_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/35329753/14969316_1920_1080_25fps.mp4",
+          "tags": "self-deprecating man",
+          "name": "Pexels ID: 35329753"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "你会下意识把功劳让出去，把标准抬代表现得更好的人，然后把自己放在‘刚好及格’的位置。",
+        "keywords": "谦让, 自我贬低",
+        "is_emphasis": false,
+        "visual_tags": [
+          "modest man",
+          "self-deprecating"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 8217048,
+          "src": "https://videos.pexels.com/video-files/8217048/8217048-hd_1280_720_30fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/8217048/8217048-hd_1920_1080_30fps.mp4",
+          "tags": "modest man",
+          "name": "Pexels ID: 8217048"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "后来我才意识到，这不是能力问题，而是一种高功能自卑。",
+        "keywords": "高功能, 自卑",
+        "is_emphasis": false,
+        "visual_tags": [
+          "high-functioning",
+          "insecure man"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 35543585,
+          "src": "https://videos.pexels.com/video-files/35543585/15057949_640_360_30fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/35543585/15057952_1920_1080_30fps.mp4",
+          "tags": "high-functioning",
+          "name": "Pexels ID: 35543585"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "你之所以能扛，正是因为你一直在用更高的标准对待自己。",
+        "keywords": "高标准, 勇敢",
+        "is_emphasis": false,
+        "visual_tags": [
+          "high standards",
+          "courageous man"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 35503540,
+          "src": "https://videos.pexels.com/video-files/35503540/15040391_640_360_30fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/35503540/15040402_1920_1080_30fps.mp4",
+          "tags": "high standards",
+          "name": "Pexels ID: 35503540"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "但问题是，你把‘能做到’，当成了‘不值一提’，把‘已经很好’，当成了‘还不够格’。",
+        "keywords": "自我否定, 不够好",
+        "is_emphasis": false,
+        "visual_tags": [
+          "self-negation",
+          "unsatisfied"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 35531330,
+          "src": "https://videos.pexels.com/video-files/35531330/15053046_640_360_24fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/35531330/15053049_1920_1080_24fps.mp4",
+          "tags": "self-negation",
+          "name": "Pexels ID: 35531330"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "所以你越能撑场面，越不敢站到台前；越被依赖，越不敢承认自己重要。",
+        "keywords": "不敢承认, 被依赖",
+        "is_emphasis": false,
+        "visual_tags": [
+          "shy man",
+          "overwhelmed"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 4694339,
+          "src": "https://videos.pexels.com/video-files/4694339/4694339-sd_640_338_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/4694339/4694339-hd_1366_720_50fps.mp4",
+          "tags": "shy man",
+          "name": "Pexels ID: 4694339"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "这不是谦虚，而是你从很早开始，就不被允许为自己感到骄傲。",
+        "keywords": "不允许, 自我肯定",
+        "is_emphasis": false,
+        "visual_tags": [
+          "prohibition",
+          "self-pride"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 10466486,
+          "src": "https://videos.pexels.com/video-files/10466486/10466486-sd_640_338_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/10466486/10466486-sd_640_338_25fps.mp4",
+          "tags": "prohibition",
+          "name": "Pexels ID: 10466486"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      }
+    ]
+  },
+  {
+    "id": "f43d4da8",
+    "title": "为什么越能干的人，越不敢承认自己有价值？",
+    "script": "你有没有发现一件很奇怪的事，\n\n越是能干的人，\n越不敢承认自己有价值。\n\n他们能扛事，\n能救场，\n真出问题的时候，\n总是被第一个叫出来。\n\n可一旦说到“价值”，\n他们反而开始犹豫，\n甚至下意识后退。\n\n后来我才意识到，\n这不是谦虚，\n而是一种早期形成的生存策略。\n\n很多能干的人，\n从一开始就明白一件事：\n只有有用，\n才不会被否定。\n\n所以他们学会了\n把注意力放在“做事”上，\n而不是“被看见”上。\n\n他们习惯用结果证明自己，\n却不敢为自己开价，\n不敢承认\n“我已经足够好了”。\n\n因为一旦承认价值，\n就意味着可能会被比较、被质疑、\n甚至被剥夺。\n\n于是他们选择了\n一个更安全的位置：\n我负责把事情做好，\n但不要求任何确认。\n\n可问题是，\n长期否认自己的价值，\n并不会让你更安全，\n只会让你\n越来越习惯被低估。\n\n所以越能干的人，\n越需要重新学会一件事：\n\n承认价值，\n不是狂妄，\n而是对自己最基本的尊重。",
+    "cover_path": "2026-01-12T22:00",
+    "video_path": "",
+    "status": "draft",
+    "publish_time": "",
+    "created_at": 1767861648.650014,
+    "scenes_data": [
+      {
+        "text": "你有没有发现一件很奇怪的事，",
+        "keywords": "发现, 奇怪事",
+        "is_emphasis": false,
+        "visual_tags": [
+          "confused person",
+          "discovery"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 7280530,
+          "src": "https://videos.pexels.com/video-files/7280530/7280530-sd_640_360_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/7280530/7280530-hd_1920_1080_25fps.mp4",
+          "tags": "confused person",
+          "name": "Pexels ID: 7280530"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "越是能干的人，",
+        "keywords": "能干, 人",
+        "is_emphasis": false,
+        "visual_tags": [
+          "hardworking man",
+          "professional"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 4069295,
+          "src": "https://videos.pexels.com/video-files/4069295/4069295-sd_640_338_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/4069295/4069295-uhd_4096_2160_25fps.mp4",
+          "tags": "hardworking man",
+          "name": "Pexels ID: 4069295"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "越不敢承认自己有价值。",
+        "keywords": "价值, 承认",
+        "is_emphasis": false,
+        "visual_tags": [
+          "shy man",
+          "value recognition"
+        ],
+        "sfx_search": "whoosh",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 4694339,
+          "src": "https://videos.pexels.com/video-files/4694339/4694339-sd_640_338_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/4694339/4694339-hd_1366_720_50fps.mp4",
+          "tags": "shy man",
+          "name": "Pexels ID: 4694339"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "他们能扛事，",
+        "keywords": "扛事",
+        "is_emphasis": false,
+        "visual_tags": [
+          "strong man",
+          "shoulder burden"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 5319099,
+          "src": "https://videos.pexels.com/video-files/5319099/5319099-sd_640_360_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/5319099/5319099-hd_1920_1080_25fps.mp4",
+          "tags": "strong man",
+          "name": "Pexels ID: 5319099"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "能救场，",
+        "keywords": "救场",
+        "is_emphasis": false,
+        "visual_tags": [
+          "rescue situation",
+          "emergency"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 3370926,
+          "src": "https://videos.pexels.com/video-files/3370926/3370926-hd_1280_720_30fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/3370926/3370926-hd_1920_1080_30fps.mp4",
+          "tags": "rescue situation",
+          "name": "Pexels ID: 3370926"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "真出问题的时候，",
+        "keywords": "问题, 出现",
+        "is_emphasis": false,
+        "visual_tags": [
+          "trouble",
+          "problem"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 4115676,
+          "src": "https://videos.pexels.com/video-files/4115676/4115676-hd_1280_720_50fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/4115676/4115676-hd_1920_1080_25fps.mp4",
+          "tags": "trouble",
+          "name": "Pexels ID: 4115676"
+        },
+        "video": "pexels_8486619_trouble.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "总是被第一个叫出来。",
+        "keywords": "叫出来",
+        "is_emphasis": false,
+        "visual_tags": [
+          "called out",
+          "response"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 7820553,
+          "src": "https://videos.pexels.com/video-files/7820553/7820553-sd_960_540_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/7820553/7820553-hd_1920_1080_25fps.mp4",
+          "tags": "called out",
+          "name": "Pexels ID: 7820553"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "可一旦说到‘价值’，",
+        "keywords": "价值, 说出口",
+        "is_emphasis": false,
+        "visual_tags": [
+          "value talk",
+          "mouth"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 5975328,
+          "src": "https://videos.pexels.com/video-files/5975328/5975328-sd_640_338_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/5975328/5975328-sd_640_338_25fps.mp4",
+          "tags": "value talk",
+          "name": "Pexels ID: 5975328"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "他们反而开始犹豫，",
+        "keywords": "犹豫",
+        "is_emphasis": false,
+        "visual_tags": [
+          "hesitant man",
+          "doubt"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 8458701,
+          "src": "https://videos.pexels.com/video-files/8458701/8458701-sd_960_506_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/8458701/8458701-hd_2048_1080_25fps.mp4",
+          "tags": "hesitant man",
+          "name": "Pexels ID: 8458701"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "甚至下意识后退。",
+        "keywords": "后退, 下意识",
+        "is_emphasis": false,
+        "visual_tags": [
+          "retreat",
+          "unconscious"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 35556282,
+          "src": "https://videos.pexels.com/video-files/35556282/15065442_640_360_30fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/35556282/15065445_1920_1080_30fps.mp4",
+          "tags": "retreat",
+          "name": "Pexels ID: 35556282"
+        },
+        "video": "pexels_35410820_retreat.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "后来我才意识到，",
+        "keywords": "意识, 意识到",
+        "is_emphasis": false,
+        "visual_tags": [
+          "realization",
+          "understanding"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 7277931,
+          "src": "https://videos.pexels.com/video-files/7277931/7277931-sd_960_540_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/7277931/7277931-hd_1920_1080_25fps.mp4",
+          "tags": "realization",
+          "name": "Pexels ID: 7277931"
+        },
+        "video": "pexels_7277931_realization.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "这不是谦虚，",
+        "keywords": "谦虚",
+        "is_emphasis": false,
+        "visual_tags": [
+          "modesty"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 8488733,
+          "src": "https://videos.pexels.com/video-files/8488733/8488733-sd_640_360_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/8488733/8488733-hd_1920_1080_25fps.mp4",
+          "tags": "modesty",
+          "name": "Pexels ID: 8488733"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "而是一种早期形成的生存策略。",
+        "keywords": "生存策略, 早期",
+        "is_emphasis": false,
+        "visual_tags": [
+          "survival strategy",
+          "early"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 13721790,
+          "src": "https://videos.pexels.com/video-files/13721790/13721790-hd_1280_720_60fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/13721790/13721790-hd_1920_1080_60fps.mp4",
+          "tags": "survival strategy",
+          "name": "Pexels ID: 13721790"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "很多能干的人，",
+        "keywords": "能干, 人",
+        "is_emphasis": false,
+        "visual_tags": [
+          "hardworking man",
+          "professional"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 5233528,
+          "src": "https://videos.pexels.com/video-files/5233528/5233528-hd_1280_720_30fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/5233528/5233528-hd_1920_1080_30fps.mp4",
+          "tags": "hardworking man",
+          "name": "Pexels ID: 5233528"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "从一开始就明白一件事：",
+        "keywords": "明白, 事情",
+        "is_emphasis": false,
+        "visual_tags": [
+          "understand",
+          "lesson"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 3209763,
+          "src": "https://videos.pexels.com/video-files/3209763/3209763-sd_640_360_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/3209763/3209763-hd_1920_1080_25fps.mp4",
+          "tags": "understand",
+          "name": "Pexels ID: 3209763"
+        },
+        "video": "pexels_6603377_misunderstanding.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "只有有用，才不会被否定。",
+        "keywords": "有用, 否定",
+        "is_emphasis": false,
+        "visual_tags": [
+          "useful",
+          "rejection"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 4331330,
+          "src": "https://videos.pexels.com/video-files/4331330/4331330-hd_1280_720_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/4331330/4331330-hd_1920_1080_25fps.mp4",
+          "tags": "useful",
+          "name": "Pexels ID: 4331330"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "所以他们学会了把注意力放在‘做事’上，",
+        "keywords": "注意力, 做事",
+        "is_emphasis": false,
+        "visual_tags": [
+          "focus on work",
+          "attention"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 7710493,
+          "src": "https://videos.pexels.com/video-files/7710493/7710493-sd_960_506_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/7710493/7710493-sd_960_506_25fps.mp4",
+          "tags": "focus on work",
+          "name": "Pexels ID: 7710493"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "而不是‘被看见’上。",
+        "keywords": "被看见",
+        "is_emphasis": false,
+        "visual_tags": [
+          "visibility",
+          "exposure"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 35498189,
+          "src": "https://videos.pexels.com/video-files/35498189/15038208_640_360_30fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/35498189/15038211_1920_1080_30fps.mp4",
+          "tags": "visibility",
+          "name": "Pexels ID: 35498189"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "他们习惯用结果证明自己，",
+        "keywords": "结果, 证明",
+        "is_emphasis": false,
+        "visual_tags": [
+          "proof by results",
+          "evidence"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 5519942,
+          "src": "https://videos.pexels.com/video-files/5519942/5519942-sd_960_540_30fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/5519942/5519942-hd_1920_1080_30fps.mp4",
+          "tags": "proof by results",
+          "name": "Pexels ID: 5519942"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "却不敢为自己开价，",
+        "keywords": "开价, 敢为",
+        "is_emphasis": false,
+        "visual_tags": [
+          "pricing",
+          "audacity"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 3735230,
+          "src": "https://videos.pexels.com/video-files/3735230/3735230-sd_640_360_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/3735230/3735230-hd_1920_1080_25fps.mp4",
+          "tags": "pricing",
+          "name": "Pexels ID: 3735230"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "不敢承认‘我已经足够好了’。",
+        "keywords": "承认, 足够好",
+        "is_emphasis": false,
+        "visual_tags": [
+          "admit",
+          "good enough"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 5117128,
+          "src": "https://videos.pexels.com/video-files/5117128/5117128-sd_640_360_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/5117128/5117128-hd_1920_1080_25fps.mp4",
+          "tags": "admit",
+          "name": "Pexels ID: 5117128"
+        },
+        "video": "pexels_5117128_admit.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "因为一旦承认价值，",
+        "keywords": "承认, 价值",
+        "is_emphasis": false,
+        "visual_tags": [
+          "acknowledge value"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 853779,
+          "src": "https://videos.pexels.com/video-files/853779/853779-sd_640_360_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/853779/853779-hd_1920_1080_25fps.mp4",
+          "tags": "acknowledge value",
+          "name": "Pexels ID: 853779"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "就意味着可能会被比较、被质疑，",
+        "keywords": "比较, 质疑",
+        "is_emphasis": false,
+        "visual_tags": [
+          "comparison",
+          "questioning"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 6580589,
+          "src": "https://videos.pexels.com/video-files/6580589/6580589-sd_960_506_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/6580589/6580589-hd_1366_720_25fps.mp4",
+          "tags": "comparison",
+          "name": "Pexels ID: 6580589"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "甚至被剥夺。",
+        "keywords": "剥夺",
+        "is_emphasis": false,
+        "visual_tags": [
+          "deprivation"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 3754905,
+          "src": "https://videos.pexels.com/video-files/3754905/3754905-sd_960_506_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/3754905/3754905-sd_960_506_25fps.mp4",
+          "tags": "deprivation",
+          "name": "Pexels ID: 3754905"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "于是他们选择了一个更安全的位置：",
+        "keywords": "位置, 更安全",
+        "is_emphasis": false,
+        "visual_tags": [
+          "safe position",
+          "security"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 3959713,
+          "src": "https://videos.pexels.com/video-files/3959713/3959713-sd_640_338_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/3959713/3959713-sd_640_338_25fps.mp4",
+          "tags": "safe position",
+          "name": "Pexels ID: 3959713"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "我负责把事情做好，但不要求任何确认。",
+        "keywords": "确认, 要求",
+        "is_emphasis": false,
+        "visual_tags": [
+          "confirmation",
+          "requirement"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 5043691,
+          "src": "https://videos.pexels.com/video-files/5043691/5043691-sd_640_360_30fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/5043691/5043691-hd_1920_1080_30fps.mp4",
+          "tags": "confirmation",
+          "name": "Pexels ID: 5043691"
+        },
+        "video": "pexels_5043691_confirmation.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "可问题是，长期否认自己的价值，",
+        "keywords": "否认, 价值",
+        "is_emphasis": false,
+        "visual_tags": [
+          "denial of value",
+          "long term"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 8627673,
+          "src": "https://videos.pexels.com/video-files/8627673/8627673-sd_960_540_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/8627673/8627673-hd_1920_1080_25fps.mp4",
+          "tags": "denial of value",
+          "name": "Pexels ID: 8627673"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "并不会让你更安全，",
+        "keywords": "安全",
+        "is_emphasis": false,
+        "visual_tags": [
+          "safety",
+          "secure"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 1721589,
+          "src": "https://videos.pexels.com/video-files/1721589/1721589-sd_960_540_30fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/1721589/1721589-hd_1920_1080_30fps.mp4",
+          "tags": "safety",
+          "name": "Pexels ID: 1721589"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "只会让你越来越习惯被低估。",
+        "keywords": "低估, 习惯",
+        "is_emphasis": false,
+        "visual_tags": [
+          "underestimated",
+          "habituation"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "local",
+          "name": "pexels_34430442_following_aerial_view_of_van_on.mp4",
+          "src": "/static/video/pexels_34430442_following_aerial_view_of_van_on.mp4"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "所以越能干的人，",
+        "keywords": "能干, 越人",
+        "is_emphasis": false,
+        "visual_tags": [
+          "highly capable people"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 6610315,
+          "src": "https://videos.pexels.com/video-files/6610315/6610315-sd_640_360_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/6610315/6610315-hd_1920_1080_25fps.mp4",
+          "tags": "highly capable people",
+          "name": "Pexels ID: 6610315"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "越需要重新学会一件事：",
+        "keywords": "学会",
+        "is_emphasis": true,
+        "visual_tags": [
+          "learn",
+          "renewal"
+        ],
+        "sfx_search": "ding",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 1793334,
+          "src": "https://videos.pexels.com/video-files/1793334/1793334-hd_1280_720_30fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/1793334/1793334-hd_1920_1080_30fps.mp4",
+          "tags": "learn",
+          "name": "Pexels ID: 1793334"
+        },
+        "video": "pexels_3209298_learning.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "承认价值，不是狂妄，而是对自己最基本的尊重。",
+        "keywords": "承认, 值得",
+        "is_emphasis": false,
+        "visual_tags": [
+          "acknowledge",
+          "respect"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 7648343,
+          "src": "https://videos.pexels.com/video-files/7648343/7648343-sd_640_360_30fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/7648343/7648343-hd_1920_1080_30fps.mp4",
+          "tags": "acknowledge",
+          "name": "Pexels ID: 7648343"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      }
+    ]
+  },
+  {
+    "id": "0ac57460",
+    "title": "为什么你一谈钱，就开始否定自己？",
+    "script": "你有没有发现，\n你在很多事情上都能撑住，\n但一谈到钱，\n整个人就开始不对劲了。\n\n你会突然变得犹豫，\n开始反复思考：\n“我是不是要多了？”\n“我配不配收这个价？”\n\n有时候对方甚至还没说什么，\n你已经先一步\n把自己压低了。\n\n后来我才意识到，\n这不是你不懂市场，\n也不是你没能力，\n而是你从很早开始，\n就被灌输了一种隐形规则：\n\n谈钱，等于自私；\n要回报，等于不懂事。\n\n所以你学会了\n用“多做一点”来换认可，\n却不敢用“合理价格”\n来确认价值。\n\n你习惯把付出\n说成理所当然，\n把回报\n看成额外奖励。\n\n可问题是，\n当你长期不为自己定价，\n世界也不会替你定。\n\n你一谈钱就否定自己，\n并不是因为你贪，\n而是因为你内心深处\n还在用“忍一忍”\n证明自己是个好人。\n\n但真正成熟的一步，\n往往是承认这一点：\n\n我的付出，\n值得被清楚地交换，\n而不是被模糊地消耗。",
+    "cover_path": "2026-01-12T22:00",
+    "video_path": "",
+    "status": "draft",
+    "publish_time": "",
+    "created_at": 1767861784.981664,
+    "scenes_data": [
+      {
+        "text": "你有没有发现，你在很多事情上都能撑住，但一谈到钱，整个人就开始不对劲了。",
+        "keywords": "金钱,犹豫,自我",
+        "is_emphasis": false,
+        "visual_tags": [
+          "business man",
+          "money trouble",
+          "doubtful face"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 3209176,
+          "src": "https://videos.pexels.com/video-files/3209176/3209176-hd_1280_720_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/3209176/3209176-hd_1920_1080_25fps.mp4",
+          "tags": "business man",
+          "name": "Pexels ID: 3209176"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "你会突然变得犹豫，开始反复思考：‘我是不是要多了？’‘我配不配收这个价？’",
+        "keywords": "定价,价值,自我怀疑",
+        "is_emphasis": false,
+        "visual_tags": [
+          "thinking face",
+          "doubtful face",
+          "confused man"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 4888198,
+          "src": "https://videos.pexels.com/video-files/4888198/4888198-sd_960_540_24fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/4888198/4888198-hd_1920_1080_24fps.mp4",
+          "tags": "thinking face",
+          "name": "Pexels ID: 4888198"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "有时候对方甚至还没说什么，你已经先一步把自己压低了。",
+        "keywords": "自我贬低,让步",
+        "is_emphasis": false,
+        "visual_tags": [
+          "nervous man",
+          "low head"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 7698691,
+          "src": "https://videos.pexels.com/video-files/7698691/7698691-sd_960_506_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/7698691/7698691-sd_960_506_25fps.mp4",
+          "tags": "nervous man",
+          "name": "Pexels ID: 7698691"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "后来我才意识到，这不是你不懂市场，也不是你没能力，而是你从很早开始，就被灌输了一种隐形规则：",
+        "keywords": "社会规则,内心冲突",
+        "is_emphasis": false,
+        "visual_tags": [
+          "man with thought bubble",
+          "hidden rules"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 7696220,
+          "src": "https://videos.pexels.com/video-files/7696220/7696220-sd_640_338_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/7696220/7696220-hd_2048_1080_25fps.mp4",
+          "tags": "man with thought bubble",
+          "name": "Pexels ID: 7696220"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "谈钱，等于自私；要回报，等于不懂事。",
+        "keywords": "金钱观念,价值判断",
+        "is_emphasis": false,
+        "visual_tags": [
+          "selfish man",
+          "naive face"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 35552866,
+          "src": "https://videos.pexels.com/video-files/35552866/15063811_640_360_100fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/35552866/15063814_1920_1080_100fps.mp4",
+          "tags": "selfish man",
+          "name": "Pexels ID: 35552866"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "所以你学会了用‘多做一点’来换认可，却不敢用‘合理价格’来确认价值。",
+        "keywords": "付出,回报",
+        "is_emphasis": false,
+        "visual_tags": [
+          "worker",
+          "payment face"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 2675565,
+          "src": "https://videos.pexels.com/video-files/2675565/2675565-sd_960_506_24fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/2675565/2675565-uhd_4096_2160_24fps.mp4",
+          "tags": "worker",
+          "name": "Pexels ID: 2675565"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "你习惯把付出说成理所当然，把回报看成额外奖励。",
+        "keywords": "价值低估,认同",
+        "is_emphasis": false,
+        "visual_tags": [
+          "ungrateful man",
+          "reward face"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 35553453,
+          "src": "https://videos.pexels.com/video-files/35553453/15063865_640_360_60fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/35553453/15063884_1920_1080_60fps.mp4",
+          "tags": "ungrateful man",
+          "name": "Pexels ID: 35553453"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "可问题是，当你长期不为自己定价，世界也不会替你定。",
+        "keywords": "自我价值,市场规则",
+        "is_emphasis": false,
+        "visual_tags": [
+          "business woman",
+          "world view"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 3201691,
+          "src": "https://videos.pexels.com/video-files/3201691/3201691-sd_640_360_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/3201691/3201691-hd_1920_1080_25fps.mp4",
+          "tags": "business woman",
+          "name": "Pexels ID: 3201691"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "你一谈钱就否定自己，并不是因为你贪，而是因为你内心深处还在用‘忍一忍’证明自己是个好人。",
+        "keywords": "自我认同,内心冲突",
+        "is_emphasis": false,
+        "visual_tags": [
+          "good man",
+          "sacrifice"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 8512893,
+          "src": "https://videos.pexels.com/video-files/8512893/8512893-sd_640_360_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/8512893/8512893-hd_1920_1080_25fps.mp4",
+          "tags": "good man",
+          "name": "Pexels ID: 8512893"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "但真正成熟的一步，往往是承认这一点：我的付出，值得被清楚地交换，而不是被模糊地消耗。",
+        "keywords": "价值交换,成熟",
+        "is_emphasis": true,
+        "visual_tags": [
+          "man with light bulb",
+          "clear exchange"
+        ],
+        "sfx_search": "whoosh",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 8855728,
+          "src": "https://videos.pexels.com/video-files/8855728/8855728-sd_960_540_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/8855728/8855728-hd_1920_1080_25fps.mp4",
+          "tags": "man with light bulb",
+          "name": "Pexels ID: 8855728"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      }
+    ]
+  },
+  {
+    "id": "0f3481b4",
+    "title": "当你开始为自己定价，内疚为什么会突然出现？",
+    "script": "很多人第一次为自己定价的时候，\n感受到的不是踏实，\n而是内疚。\n\n明明只是说出一个合理的价格，\n心里却开始不安，\n甚至想补一句：\n“如果不方便也没关系。”\n\n后来我才明白，\n内疚并不是因为你要多了，\n而是因为你第一次没有站在别人那边。\n\n你过去习惯的是，\n先考虑对方能不能接受，\n先压低自己的需求，\n再用“我无所谓”\n来维持关系的安全感。\n\n所以当你开始为自己定价，\n等于是在打破一个\n你用了很多年的规则：\n\n只要我不提要求，\n就不会失去任何东西。\n\n可问题是，\n这个规则的代价，\n一直都是你自己。\n\n内疚出现的那一刻，\n其实不是在提醒你做错了，\n而是在告诉你：\n\n你正在退出\n那个靠委屈自己\n换取安全感的位置。\n\n所以你会不习惯，\n会想退回去，\n会怀疑是不是自己太计较。\n\n但真正重要的不是\n内疚有没有出现，\n而是你有没有意识到：\n\n这一次，\n你终于没有再自动把自己\n放在最低价。",
+    "cover_path": "2026-01-14T22:00",
+    "video_path": "",
+    "status": "draft",
+    "publish_time": "",
+    "created_at": 1767861902.643664,
+    "scenes_data": [
+      {
+        "text": "很多人第一次为自己定价的时候，感受到的不是踏实，而是内疚。",
+        "keywords": "定价, 内疚",
+        "is_emphasis": false,
+        "visual_tags": [
+          "business man",
+          "price negotiation"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 3209176,
+          "src": "https://videos.pexels.com/video-files/3209176/3209176-hd_1280_720_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/3209176/3209176-hd_1920_1080_25fps.mp4",
+          "tags": "business man",
+          "name": "Pexels ID: 3209176"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "明明只是说出一个合理的价格，心里却开始不安，甚至想补一句：‘如果不方便也没关系。’",
+        "keywords": "价格, 不安",
+        "is_emphasis": false,
+        "visual_tags": [
+          "business man",
+          "doubt"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 3196002,
+          "src": "https://videos.pexels.com/video-files/3196002/3196002-sd_640_360_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/3196002/3196002-hd_1920_1080_25fps.mp4",
+          "tags": "business man",
+          "name": "Pexels ID: 3196002"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "后来我才明白，内疚并不是因为你要多了，而是因为你第一次没有站在别人那边。",
+        "keywords": "内疚, 利他",
+        "is_emphasis": false,
+        "visual_tags": [
+          "insight",
+          "realization"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 6657871,
+          "src": "https://videos.pexels.com/video-files/6657871/6657871-sd_960_540_30fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/6657871/6657871-hd_1920_1080_30fps.mp4",
+          "tags": "insight",
+          "name": "Pexels ID: 6657871"
+        },
+        "video": "pexels_6657871_insight_a_person_knocking_on_the.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "你过去习惯的是，先考虑对方能不能接受，先压低自己的需求，再用‘我无所谓’来维持关系的安全感。",
+        "keywords": "妥协, 安全",
+        "is_emphasis": false,
+        "visual_tags": [
+          "man holding back",
+          "security"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 6503214,
+          "src": "https://videos.pexels.com/video-files/6503214/6503214-sd_960_540_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/6503214/6503214-hd_1920_1080_25fps.mp4",
+          "tags": "man holding back",
+          "name": "Pexels ID: 6503214"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "所以当你开始为自己定价，等于是在打破一个你用了很多年的规则：只要我不提要求，就不会失去任何东西。",
+        "keywords": "自我主张, 规则",
+        "is_emphasis": false,
+        "visual_tags": [
+          "breaking rules",
+          "self-assertion"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 6254173,
+          "src": "https://videos.pexels.com/video-files/6254173/6254173-sd_960_540_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/6254173/6254173-hd_1920_1080_25fps.mp4",
+          "tags": "breaking rules",
+          "name": "Pexels ID: 6254173"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "可问题是，这个规则的代价，一直都是你自己。",
+        "keywords": "代价, 自我",
+        "is_emphasis": false,
+        "visual_tags": [
+          "cost",
+          "self-sacrifice"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 3943966,
+          "src": "https://videos.pexels.com/video-files/3943966/3943966-sd_640_338_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/3943966/3943966-uhd_4096_2160_25fps.mp4",
+          "tags": "cost",
+          "name": "Pexels ID: 3943966"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "内疚出现的那一刻，其实不是在提醒你做错了，而是在告诉你：你正在退出那个靠委屈自己换取安全感的位置。",
+        "keywords": "内疚, 安全感",
+        "is_emphasis": false,
+        "visual_tags": [
+          "guilt",
+          "safety"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 7773313,
+          "src": "https://videos.pexels.com/video-files/7773313/7773313-sd_640_360_30fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/7773313/7773313-hd_1920_1080_30fps.mp4",
+          "tags": "guilt",
+          "name": "Pexels ID: 7773313"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "所以你会不习惯，会想退回去，会怀疑是不是自己太计较。",
+        "keywords": "适应, 怀疑",
+        "is_emphasis": false,
+        "visual_tags": [
+          "adjustment",
+          "doubt"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 35327762,
+          "src": "https://videos.pexels.com/video-files/35327762/14969238_640_360_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/35327762/14969241_1920_1080_25fps.mp4",
+          "tags": "adjustment",
+          "name": "Pexels ID: 35327762"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      },
+      {
+        "text": "但真正重要的不是内疚有没有出现，而是你有没有意识到：这一次，你终于没有再自动把自己放在最低价。",
+        "keywords": "意识, 自我价值",
+        "is_emphasis": false,
+        "visual_tags": [
+          "awareness",
+          "self-value"
+        ],
+        "sfx_search": "",
+        "voice": "zh-CN-YunxiNeural",
+        "video_info": {
+          "type": "online",
+          "id": 3960160,
+          "src": "https://videos.pexels.com/video-files/3960160/3960160-sd_960_506_25fps.mp4",
+          "download_url": "https://videos.pexels.com/video-files/3960160/3960160-uhd_2732_1440_25fps.mp4",
+          "tags": "awareness",
+          "name": "Pexels ID: 3960160"
+        },
+        "video": "pexels_33550574_自信_stunning_aerial_view_of_sumela.mp4",
+        "audio_padding": "0"
+      }
+    ]
+  },
+  {
+    "id": "8e4eda16",
+    "title": "你害怕的不是别人嫌你贵，是你开始站在自己这边。",
+    "script": "你有没有发现，\n你一抬价，\n心里最先冒出来的，\n并不是对方会不会拒绝，\n而是一种很模糊的慌。\n\n好像不是怕被嫌贵，\n而是怕气氛变了，\n关系变了，\n自己不再那么“好相处”了。\n\n后来我才意识到，\n真正让人不安的，\n从来不是价格本身，\n而是你第一次\n没有站在所有人那边。\n\n你过去太习惯\n先理解别人，\n先照顾场面，\n先替对方把难处想好。\n\n所以当你开始为自己定价，\n那一刻你做的，\n不是谈钱，\n而是做了一件\n你以前很少做的事：\n\n站在自己这边。\n\n这会让你不习惯，\n会让你内疚，\n甚至会让你怀疑\n自己是不是变冷漠了。\n\n但真正的转折，\n往往就是从这一刻开始的。\n\n因为你终于不再\n用压低自己\n来换取安全感，\n也不再用牺牲\n证明自己是个好人。\n\n你害怕的，\n从来不是别人嫌你贵，\n而是你发现——\n原来你也可以，\n站在自己这边。",
+    "cover_path": "2026-01-15T22:00",
+    "video_path": "",
+    "status": "draft",
+    "publish_time": "",
+    "created_at": 1767862013.9391968,
+    "scenes_data": []
+  },
+  {
+    "id": "1f4877ee",
+    "title": "当你不再因为要回报而内疚，关系会发生什么变化？",
+    "script": "当你不再因为要回报而内疚，\n关系真的会发生变化。\n\n但不是你想象中的那种，\n大吵一架，\n或者彻底决裂。\n\n更多时候，\n是一些很细微的变化。\n\n比如你不再急着解释自己，\n不再补一句\n“如果不方便也没关系”，\n也不再用退让\n来提前安抚对方的情绪。\n\n有些人会慢慢靠近你，\n因为他们终于知道\n你是真实、清晰、好合作的。\n\n也有些关系，\n会悄悄变淡。\n\n不是因为你变冷了，\n而是因为\n那段关系原本\n就是靠你一直多付出、\n少索取在维持。\n\n后来我才意识到，\n不再内疚，\n并不会让你失去所有人。\n\n它只会帮你筛掉\n那些\n只能接受你“便宜”的关系。\n\n当你开始清楚地交换、\n坦然地要回报，\n你得到的\n不是更多冲突，\n而是更少消耗。\n\n关系不一定会更多，\n但会更轻松。\n\n而你也终于不用再\n一边付出，\n一边怀疑\n自己是不是太计较了。",
+    "cover_path": "2026-01-16T22:00",
+    "video_path": "",
+    "status": "draft",
+    "publish_time": "",
+    "created_at": 1767862157.7612019,
+    "scenes_data": []
+  },
+  {
+    "id": "ada99d8c",
+    "title": "真正成熟的关系，是你不需要一直内疚",
+    "script": "很多人以为，\n成熟的关系，\n是彼此体谅，\n是多忍一点，\n是少计较。\n\n但后来我发现，\n真正成熟的关系，\n有一个非常明显的特征：\n\n你不需要一直内疚。\n\n你不用在表达需求之后\n立刻补一句解释，\n不用在拒绝之后\n反复想自己是不是太冷了，\n也不用在要回报的时候\n心里一直打结。\n\n因为在成熟的关系里，\n你的需求\n不会被当成负担，\n你的边界\n也不会被解读为攻击。\n\n后来我才意识到，\n那些让你长期内疚的关系，\n往往不是你不够好，\n而是这段关系\n只适应你不断退让的版本。\n\n所以当你开始站在自己这边，\n内疚感反而会变强，\n那不是你变自私了，\n而是你终于不再\n自动忽略自己。\n\n成熟的关系，\n不需要你\n一边付出，\n一边怀疑\n自己是不是太计较了。\n\n如果一段关系，\n只有在你压低自己的时候\n才能维持，\n那它本身，\n就还不够成熟。",
+    "cover_path": "2026-01-17T22:00",
+    "video_path": "",
+    "status": "draft",
+    "publish_time": "",
+    "created_at": 1767862312.4717171,
+    "scenes_data": []
+  }
+]
