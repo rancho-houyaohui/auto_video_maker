@@ -67,6 +67,7 @@ class AnalyzeRequest(BaseModel):
 
 class RenderRequest(BaseModel):
     client_id: str
+    project_id: str = ""
     scenes: list
     output_name: str
     bgm_file: str = ""
@@ -349,6 +350,14 @@ async def api_render(req: RenderRequest):
             GLOBAL_PROGRESS[req.client_id]["percent"] = 100
             if "@@@" in msg:
                 GLOBAL_PROGRESS[req.client_id]["url"] = msg.split("@@@")[1]
+            if req.project_id:
+                print(f"💾 更新项目状态: {req.project_id} -> generated")
+                project_mgr.update(req.project_id, {
+                    "status": "generated",
+                    # "video_path": final_url, # 存入 Web 访问路径
+                    "video_path": output_path, # 绝对路径
+                    # 如果需要存绝对路径，可以用 output_path
+                })
         
         # 检查错误状态
         elif "❌ Error" in msg:

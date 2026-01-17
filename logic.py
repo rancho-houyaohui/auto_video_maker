@@ -124,83 +124,58 @@ class VideoEngine:
 
     def split_text_by_breath(self, text):
         # 默认最大宽度 18 个字 (超过就尝试在逗号处切开，如果没逗号，也会保留完整句子)
-        return self.smart_split_text(text, max_chars=18)
+        return self.smart_split_text(text, max_chars=30)
 
     # --- [核心优化] 智能贪婪合并分段算法 ---
-    def smart_split_text(self, text, max_chars=18):
+    def smart_split_text(self, text, max_chars=30):
         """
-        策略：
-        1. 优先合并：尽可能把短句拼成长句，直到超过 max_chars。
-        2. 逻辑断句：遇到强结束符(。？！)必须断开。
-        3. 弱断句：遇到逗号时，如果当前缓冲区已经够长了，就断开；否则继续拼。
+        优化版：增加对破折号的支持，移除暴力切分，改用软截断。
         """
         text = text.replace("\n", " ").strip()
-        # 剥离包裹符号
         text = text.strip('"').strip("'").strip('“').strip('”').strip('(').strip(')').strip('（').strip('）')
         if not text: return []
         
         text = text.replace("...", "@@ELLIPSIS@@")
         
-        # 1. 先按所有标点切成“原子” (Atom)，保留标点
-        # 例如: "你好，世界。" -> ["你好", "，", "世界", "。"]
-        atoms = re.split(r'([，。！?？,!.、;；：:]+)', text)
+        # 1. 补充支持破折号 —— 和空格作为切分点
+        atoms = re.split(r'([，。！?？,!.、;；：:——\s]+)', text)
         
-        # 2. 重组原子为带标点的片段
-        # -> ["你好，", "世界。"]
         segments = []
         current_segment = ""
         for item in atoms:
             if not item: continue
             current_segment += item
-            # 如果 item 包含标点，说明这个 segment 结束了
-            if re.search(r'[，。！?？,!.、;；：:]+', item):
+            if re.search(r'[，。！?？,!.、;；：:——\s]+', item):
                 segments.append(current_segment)
                 current_segment = ""
         if current_segment: segments.append(current_segment)
         
-        # 3. 贪婪合并逻辑
         final_chunks = []
         current_buffer = ""
         
         for seg in segments:
-            # 还原省略号
             seg = seg.replace("@@ELLIPSIS@@", "...")
-            
-            # 判断是否包含强结束符 (句号/问号/感叹号)
             is_strong_end = bool(re.search(r'[。！？!?]', seg))
             
-            # 预测合并后的长度
-            # 如果 (当前缓存 + 新片段) 超过限制，且当前缓存不为空 -> 先结算当前缓存
+            # 2. 只有当 buffer 确实太长，且新片段加上去会显著过长时才切分
+            # 如果当前 buffer 字数很少（例如<5），即使加上去超标了也尽量不切，防止孤儿词
             if len(current_buffer) + len(seg) > max_chars:
-                if current_buffer:
+                if len(current_buffer) > 5: 
                     final_chunks.append(current_buffer.strip())
                     current_buffer = ""
             
             current_buffer += seg
             
-            # 如果遇到强结束符，必须立刻结算 (不跨句合并)
             if is_strong_end:
                 final_chunks.append(current_buffer.strip())
                 current_buffer = ""
                 
-        # 结算剩余
         if current_buffer.strip():
             final_chunks.append(current_buffer.strip())
             
-        # 4. 二次校验：如果某一段太长且没有标点 (极少见)，强制切分 (防止溢出屏幕)
-        # 这里设置为 25 字强切
-        refined_chunks = []
-        for chunk in final_chunks:
-            if len(chunk) > 25:
-                 # 暴力对半切
-                 mid = len(chunk) // 2
-                 refined_chunks.append(chunk[:mid])
-                 refined_chunks.append(chunk[mid:])
-            else:
-                refined_chunks.append(chunk)
-
-        # 5. 过滤掉纯标点的无效片段
-        return [c for c in refined_chunks if re.search(r'[\u4e00-\u9fa5a-zA-Z0-9]', c)]
+        # 3. 彻底删除原有的 Step 4 (暴力对半切)，防止“陷阱”被切成“陷”“阱”
+        # 改为最后一道过滤
+        return [c for c in final_chunks if re.search(r'[\u4e00-\u9fa5a-zA-Z0-9]', c)]
 
     def hex_to_ass_color(self, hex_color):
         hex_color = str(hex_color).lstrip('#')
@@ -487,105 +462,169 @@ class VideoEngine:
 
     def analyze_script(self, text):
         print(f"🤖 Calling LLM: {self.llm_model_name}...")
-        
-        # 1. Python 先拆好
+        import concurrent.futures
+
+        # 1. 预处理：先分句
         text_clean_for_split = re.sub(r'[\(（].*?[\)）]', '', text).strip()
-        
-        # [核心优化 1] 分词逻辑入口
-        pre_split_segments = self.smart_split_text(text_clean_for_split, max_chars=18)
-        
+        pre_split_segments = self.smart_split_text(text_clean_for_split, max_chars=30)
         if not pre_split_segments: return []
-        segments_json = json.dumps(pre_split_segments, ensure_ascii=False)
 
-        prompt = f"""
-        你是一个JSON转换器。任务是为输入的每一句文案匹配**英文画面关键词**和**音效**。
+        total_segments = len(pre_split_segments)
+        print(f"📝 总计 {total_segments} 个分镜，准备分批并行处理...")
+
+        # --- 配置 ---
+        BATCH_SIZE = 8  # 每批处理 8 句 (根据显存/API限制调整，推荐 5-10)
         
-        【输入数据】
-        {segments_json}
-        
-        【输出要求】
-        1. "visual_tags": 提取句子中的实体名词，翻译成 1-2 个**英文单词** (用于搜视频)。不要用抽象词。
-        2. "keywords": 提取句子中 1-3 个字的**中文重点词** (用于字幕高亮)。
-        3. "sfx_search": 音效。**只有**当句子包含"震惊、转折、强调、疑问"语气时才填 (whoosh/ding/boom/pop)，**普通叙述请留空字符串**，不要每句都填！
-        4. "is_emphasis": 是否为标题或金句 (true/false)。
-        5. "sfx_search": 对于金句选择音效，仅限从以下选择: whoosh, ding, boom, keyboard, pop。
-        
-        【输出示例】
-        [
-          {{"text": "第一句文案", "keywords": "重点", "is_emphasis": false, "visual_tags": ["tag1", "tag2"], "sfx_search": "whoosh"}},
-          {{"text": "第二句文案", "keywords": "核心", "is_emphasis": true, "visual_tags": ["tag3", "tag4"], "sfx_search": "boom"}}
-        ]
-        """
-        try:
-            content = self._call_llm(prompt)
-            clean_content = re.sub(r'```json\s*', '', content)
-            clean_content = re.sub(r'```', '', clean_content).strip()
-            s = clean_content.find('[')
-            e = clean_content.rfind(']')+1
-            scenes = json.loads(clean_content[s:e])
+        # 如果是本地 Ollama，并发设为 1 避免显存爆炸；如果是 API (OpenAI/DeepSeek等)，可以设为 3-5
+        MAX_WORKERS = 1 if self.llm_provider == 'ollama' else 4 
+
+        # 结果容器，预先占位，保证顺序
+        final_results = [None] * total_segments
+
+        # 定义单个批次的处理函数
+        def process_batch(batch_data):
+            batch_index, segment_chunk = batch_data
             
-            used_identifiers = set()
-            final_scenes = []
+            # 构造仅包含文本的列表供 LLM 分析
+            chunk_json = json.dumps(segment_chunk, ensure_ascii=False)
+
+            # 优化后的 Prompt：明确要求不返回原文，减少生成时间
+            prompt = f"""
+            你是一个视频脚本分析师。请分析输入的文案列表。
             
-            for i, original_text in enumerate(pre_split_segments):
-                scene_data = {}
-                if i < len(scenes):
-                    scene_data = scenes[i]
+            【输入数据】
+            {chunk_json}
+            
+            【任务】
+            按顺序为每一句生成 JSON 对象，**不要返回原文(text字段)**，仅返回分析属性。
+            
+            【属性要求】
+            1. "v": (visual_tags) 提取句子中的实体名词，翻译成 1-2 个**英文单词** (用于搜视频)。不要用抽象词。
+            2. "k": (keywords) 提取句子中 1-3 个字的**中文重点词** (用于字幕高亮)。
+            3. "s": (sfx) 音效。**只有**当句子包含"震惊、转折、强调、疑问"语气时才填 ( whoosh, ding, boom, keyboard, pop)，**普通叙述请留空字符串**，不要每句都填！
+            4. "e": (is_emphasis) Boolean，是否为金句/标题 (true/false)。
+            
+            【输出格式】
+            严格的 JSON 列表，不需要 Markdown 标记，例如：
+            [
+              {{"v": ["city", "night"], "k": "夜景", "s": "whoosh", "e": false}},
+              {{"v": ["money"], "k": "赚钱", "s": "ding", "e": true}}
+            ]
+            """
+            
+            try:
+                # 调用 LLM
+                response = self._call_llm(prompt)
+                
+                # 清洗 JSON
+                clean_content = re.sub(r'```json\s*', '', response)
+                clean_content = re.sub(r'```', '', clean_content).strip()
+                # 尝试提取列表部分
+                s = clean_content.find('[')
+                e = clean_content.rfind(']') + 1
+                if s != -1 and e != -1:
+                    clean_content = clean_content[s:e]
+                
+                return batch_index, json.loads(clean_content)
+            except Exception as e:
+                print(f"⚠️ Batch {batch_index} Error: {e}")
+                return batch_index, []
+
+        # 2. 准备批次数据
+        batches = []
+        for i in range(0, total_segments, BATCH_SIZE):
+            chunk = pre_split_segments[i : i + BATCH_SIZE]
+            batches.append((i, chunk))
+
+        # 3. 并行/串行执行
+        # 使用 ThreadPoolExecutor 进行并发请求
+        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            future_to_batch = {executor.submit(process_batch, b): b for b in batches}
+            
+            for future in concurrent.futures.as_completed(future_to_batch):
+                start_idx, result_list = future.result()
+                
+                # 回填数据
+                chunk_len = len(batches[start_idx // BATCH_SIZE][1])
+                
+                for offset in range(chunk_len):
+                    abs_index = start_idx + offset
+                    original_text = pre_split_segments[abs_index]
+                    
+                    # 默认兜底数据
+                    scene_data = {
+                        "text": original_text,
+                        "visual_tags": ["abstract"],
+                        "keywords": "",
+                        "sfx_search": "",
+                        "is_emphasis": False
+                    }
+                    
+                    # 尝试读取 LLM 结果
+                    if result_list and offset < len(result_list):
+                        item = result_list[offset]
+                        # 映射简写字段回完整字段
+                        scene_data["visual_tags"] = item.get("v", ["abstract"])
+                        scene_data["keywords"] = item.get("k", "")
+                        scene_data["sfx_search"] = item.get("s", "")
+                        scene_data["is_emphasis"] = item.get("e", False)
+                    
+                    final_results[abs_index] = scene_data
+
+        # 4. 后处理：资源匹配 (搜图/搜视频)
+        # 这部分逻辑保持不变，但移到了最后统一处理
+        print("🔍 正在匹配视频素材...")
+        used_identifiers = set()
+        final_scenes = []
+
+        for scene_data in final_results:
+            # 防止前面的并发错误导致 None
+            if scene_data is None: continue 
+            
+            # 处理 keywords 格式
+            kw = scene_data.get('keywords')
+            if isinstance(kw, list): scene_data['keywords'] = ", ".join([str(k) for k in kw])
+            elif kw is None: scene_data['keywords'] = ""
+            else: scene_data['keywords'] = str(kw)
+
+            # 默认参数
+            scene_data['voice'] = config.DEFAULT_VOICE
+            scene_data['video_info'] = {"type": "local", "src": "", "name": "random"} 
+            
+            tags = scene_data.get('visual_tags', [])
+            
+            # --- 资源搜索逻辑 (复用原有的逻辑) ---
+            if tags:
+                search_query = tags[0]
+                # 1. 搜在线
+                online_info = self.search_online_videos(search_query)
+                selected_vid = None
+                
+                if isinstance(online_info, list) and online_info:
+                    for vid in online_info:
+                        if str(vid['id']) not in used_identifiers:
+                            selected_vid = vid
+                            used_identifiers.add(str(vid['id']))
+                            break
+                    if not selected_vid: selected_vid = random.choice(online_info)
+                    scene_data['video_info'] = selected_vid
                 else:
-                    scene_data = {"visual_tags": ["abstract"], "keywords": "", "sfx_search": ""}
-                
-                # 强制回填原文
-                scene_data['text'] = original_text
-                
-                kw = scene_data.get('keywords')
-                if isinstance(kw, list): scene_data['keywords'] = ", ".join([str(k) for k in kw])
-                elif kw is None: scene_data['keywords'] = ""
-                else: scene_data['keywords'] = str(kw)
-
-                # 默认不加音效
-                if 'sfx_search' not in scene_data: scene_data['sfx_search'] = ""
-
-                tags = scene_data.get('visual_tags', [])
-                scene_data['voice'] = config.DEFAULT_VOICE
-                scene_data['video_info'] = {"type": "local", "src": "", "name": "random"} 
-                
-                if tags:
-                    search_query = tags[0]
-                    online_info = self.search_online_videos(search_query)
-                    selected_vid = None
-                    if isinstance(online_info, list) and online_info:
-                        for vid in online_info:
-                            if str(vid['id']) not in used_identifiers:
-                                selected_vid = vid
-                                used_identifiers.add(str(vid['id']))
+                    # 2. 搜本地
+                    local = self.search_local_videos(search_query)
+                    if local:
+                        target = None
+                        random.shuffle(local)
+                        for f in local:
+                            if f not in used_identifiers:
+                                target = f
+                                used_identifiers.add(f)
                                 break
-                        if not selected_vid: selected_vid = random.choice(online_info)
-                        scene_data['video_info'] = selected_vid
-                    else:
-                        local = self.search_local_videos(search_query)
-                        if local:
-                            random.shuffle(local)
-                            target = None
-                            for f in local:
-                                if f not in used_identifiers:
-                                    target = f
-                                    used_identifiers.add(f)
-                                    break
-                            if not target: target = random.choice(local)
-                            scene_data['video_info'] = {"type": "local", "name":target, "src":f"/static/video/{target}"}
-                
-                final_scenes.append(scene_data)
+                        if not target: target = random.choice(local)
+                        scene_data['video_info'] = {"type": "local", "name":target, "src":f"/static/video/{target}"}
+            
+            final_scenes.append(scene_data)
 
-            return final_scenes
-        except Exception as e:
-            print(f"LLM Error: {e}")
-            fallback_scenes = []
-            for t in pre_split_segments:
-                fallback_scenes.append({
-                    "text": t, "visual_tags": ["abstract"], "keywords":"", "sfx_search":"", 
-                    "is_emphasis": False, "video_info": {"type":"local","name":"random"}
-                })
-            return fallback_scenes
+        return final_scenes
 
     # --- 渲染核心 ---
     async def render_project(self, params, output_file, log_callback=None):
@@ -678,12 +717,22 @@ class VideoEngine:
                     
                     if disp:
                         if is_emphasis:
-                            # 1. 霸屏模式
+                            # 1. 霸屏模式优化：不再暴力切断，而是智能换行
                             content = disp
-                            # 如果字数太多，自动换行
-                            if len(content) > 8:
-                                content = content[:8] + "\\N" + content[8:]
+                            
+                            # 策略：如果有标点（顿号、逗号），优先在标点后换行
+                            if "、" in content:
+                                content = content.replace("、", "、\\N")
+                            elif "，" in content:
+                                content = content.replace("，", "，\\N")
+                            elif len(content) > 12: 
+                                # 只有真的非常长且没标点时，才在中间换行
+                                mid = len(content) // 2
+                                content = content[:mid] + "\\N" + content[mid:]
                                 
+                            # 移除末尾可能多余的换行符
+                            if content.endswith("\\N"): content = content[:-2]
+
                             ass_l = f"Dialogue: 1,{start_s},{end_s},Emphasis,,0,0,0,,{{\\fad(50,0)}}{content}"
                             subtitles_events.append(ass_l)
                         else:
