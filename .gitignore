@@ -7,3 +7,4 @@ build
 bin
 
 projects.json
+vector_index.pt
