@@ -96,7 +96,8 @@ for d in all_dirs:
 # 字体路径
 FONT_PATH = os.path.join(ASSETS_DIR, "fonts", "font.ttf")
 
-
+# 向量视频库目录
+CLIP_LIB_DIR = "/Users/houyaohui/wwwroot/pull_videos/clip_library"
 
 # --- API Keys (在此填入，前端如果没有输入则默认使用这里的) ---
 PEXELS_API_KEY = "" 
@@ -121,6 +122,7 @@ DEFAULT_VOICE = "zh-CN-YunxiNeural"  # 默认解说声音
 BGM_VOLUME = 0.06                     # 背景音乐音量
 AUDIO_PADDING = 0                  # 句间停顿(秒)
 DEFAULT_TTS_RATE = "+40%"            # 默认语速
+BGM_FILE = os.path.join(ASSETS_DIR, "music", "bgm.mp3")
 
 # --- 可选语音列表 (用于前端下拉菜单) ---
 # 格式: ("标识符", "显示名称")

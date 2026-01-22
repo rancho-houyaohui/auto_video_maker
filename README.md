@@ -1,3 +1,13 @@
+---
+title: AI Video Workstation (AI 全栈视频工作站)
+description: 专为制作高密度、强视觉冲击、快节奏短视频而生的全流程自动化工具
+category: 视频制作工具
+tags: [AI视频制作, 自动化视频, 本地大模型, Ollama, Python, FFmpeg]
+author: ranchohou
+date: 2026-01-18
+version: 1.0.0
+---
+
 # 🎬 AI Video Workstation (AI 全栈视频工作站)
 
 > 专为制作高密度、强视觉冲击、快节奏短视频而生的全流程自动化工具。

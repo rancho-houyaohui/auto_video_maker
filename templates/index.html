@@ -203,6 +203,18 @@
                 <div class="card-body">
                     <label class="fw-bold mb-2">输入文案</label>
                     <textarea id="scriptInput" class="form-control mb-3" rows="4" placeholder="在此粘贴视频文案...">这绝对是2025年最疯狂的风口！很多人每天都在焦虑，其实是因为没有掌握底层逻辑。</textarea>
+
+                    <div class="d-flex align-items-center gap-2" style="height: 40px;">
+                        <label class="form-label small">搜索资源来源：</label>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="search_source" id="vectorSource" value="vector" checked>
+                            <label class="form-check-label" for="vectorSource">本地向量库视频</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="search_source" id="pexelsSource" value="pexels">
+                            <label class="form-check-label" for="pexelsSource">在线Pexels API</label>
+                        </div>
+                    </div>
                     <button onclick="analyzeScript(this)" class="btn btn-primary w-100 fw-bold py-2">🧠 AI 拆解分镜</button>
                 </div>
             </div>
@@ -215,7 +227,6 @@
                             <button onclick="applyGlobalVoice()" class="btn btn-sm btn-outline-secondary">应用全局语音</button>
                             <button onclick="applyGlobalPadding()" class="btn btn-sm btn-outline-secondary">应用全局停顿</button>
                         </div>
-                        <!-- [新增] 手动保存按钮 -->
                         <button onclick="manualSave()" class="btn btn-sm btn-outline-primary" id="btnSaveProject" style="display:none;">💾 保存进度</button>
                     </div>
                     <button onclick="openRenderModal()" class="btn btn-success fw-bold px-4">🚀 开始渲染</button>
@@ -232,7 +243,6 @@
             <ul class="nav nav-pills mb-3" id="resTab">
                 <li class="nav-item"><a class="nav-link active" data-bs-toggle="pill" href="#res-video-pane">📺 视频素材</a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#res-sfx-pane">🔊 音效素材</a></li>
-                <!-- [新增] 音乐 Tab -->
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#res-music-pane">🎵 背景音乐</a></li>
             </ul>
             
@@ -676,6 +686,8 @@
         let sIdx = 0;
         const interval = setInterval(() => { btn.innerText = states[sIdx++ % states.length]; }, 2500);
 
+        const searchMode = document.querySelector('input[name="search_source"]:checked').value; // 'vector' 或 'pexels'
+
         try {
             const res = await fetch('/api/analyze', {
                 method: 'POST',
@@ -687,7 +699,8 @@
                     llm_provider: provider,
                     llm_model: llmModel,
                     llm_base_url: llmBase,
-                    llm_api_key: llmKey
+                    llm_api_key: llmKey,
+                    search_source: searchMode
                 })
             });
 
@@ -1020,33 +1033,71 @@
         grid.innerHTML = '<div class="text-center py-5">⏳...</div>';
         switchVideoView('online');
 
+        // 获取资源来源
+        const source = document.querySelector('input[name="search_source"]:checked').value;
+
         try {
-            const res = await fetch(`/api/search_online?query=${q}&pexels_key=${k}`, {method:'POST'});
-            const d = await res.json();
-            if(d.status === 'ok') {
-                grid.innerHTML = '';
-                if(d.results.length === 0) grid.innerHTML = '<div class="text-center py-5">无结果</div>';
-                else {
-                    d.results.forEach(v => {
-                        const vStr = JSON.stringify(v).replace(/"/g, '&quot;');
-                        const safeTag = (v.tags||"").replace(/"/g,"");
-                        const div = document.createElement('div');
-                        div.className = 'col-md-3 col-6 video-select-item';
-                        div.innerHTML = `
-                            <div class="card h-100 shadow-sm border-0">
-                                <video src="${v.src}" class="card-img-top" style="height:100px;object-fit:cover" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>
-                                <div class="card-body p-2 text-center">
-                                    <div class="small text-muted mb-2 text-truncate">ID:${v.id}</div>
-                                    <div class="d-grid gap-1">
-                                        <button class="btn btn-sm btn-outline-success" onclick='selectVideo(${vStr})'>👁️ 预览</button>
-                                        <button class="btn btn-sm btn-primary" onclick='downloadAndSelect(this, "${v.download_url}", "${v.id}", "${safeTag}")'>⬇️ 下载选</button>
+            let res, d;
+            if(source === 'vector') {
+                // 调用本地向量库搜索接口
+                res = await fetch('/api/search_vector', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: q, top_k: 20 })
+                });
+                d = await res.json();
+                if(d.status === 'ok') {
+                    grid.innerHTML = '';
+                    if(d.results.length === 0) grid.innerHTML = '<div class="text-center py-5">无结果</div>';
+                    else {
+                        d.results.forEach(v => {
+                            const vStr = JSON.stringify(v).replace(/"/g, '&quot;');
+                            const div = document.createElement('div');
+                            div.className = 'col-md-3 col-6 video-select-item';
+                            div.innerHTML = `
+                                <div class="card h-100 shadow-sm border-0">
+                                    <video src="${v.src}" class="card-img-top" style="height:100px;object-fit:cover" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>
+                                    <div class="card-body p-2 text-center">
+                                        <div class="small text-muted mb-2 text-truncate">${v.name}</div>
+                                        <div class="d-grid gap-1">
+                                            <button class="btn btn-sm btn-outline-success" onclick='selectVideo(${vStr})'>👁️ 预览</button>
+                                            <button class="btn btn-sm btn-primary" onclick='selectVideo(${vStr})'>✅ 选择</button>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>`;
-                        grid.appendChild(div);
-                    });
-                }
-            } else grid.innerHTML = `<div class="text-danger py-5">Error: ${d.msg}</div>`;
+                                </div>`;
+                            grid.appendChild(div);
+                        });
+                    }
+                } else grid.innerHTML = `<div class="text-danger py-5">Error: ${d.msg || '搜索失败'}</div>`;
+            } else {
+                // 调用现有的在线搜索接口
+                res = await fetch(`/api/search_online?query=${q}&pexels_key=${k}`, {method:'POST'});
+                d = await res.json();
+                if(d.status === 'ok') {
+                    grid.innerHTML = '';
+                    if(d.results.length === 0) grid.innerHTML = '<div class="text-center py-5">无结果</div>';
+                    else {
+                        d.results.forEach(v => {
+                            const vStr = JSON.stringify(v).replace(/"/g, '&quot;');
+                            const safeTag = (v.tags||"").replace(/"/g,"");
+                            const div = document.createElement('div');
+                            div.className = 'col-md-3 col-6 video-select-item';
+                            div.innerHTML = `
+                                <div class="card h-100 shadow-sm border-0">
+                                    <video src="${v.src}" class="card-img-top" style="height:100px;object-fit:cover" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>
+                                    <div class="card-body p-2 text-center">
+                                        <div class="small text-muted mb-2 text-truncate">ID:${v.id}</div>
+                                        <div class="d-grid gap-1">
+                                            <button class="btn btn-sm btn-outline-success" onclick='selectVideo(${vStr})'>👁️ 预览</button>
+                                            <button class="btn btn-sm btn-primary" onclick='downloadAndSelect(this, "${v.download_url}", "${v.id}", "${safeTag}")'>⬇️ 下载选</button>
+                                        </div>
+                                    </div>
+                                </div>`;
+                            grid.appendChild(div);
+                        });
+                    }
+                } else grid.innerHTML = `<div class="text-danger py-5">Error: ${d.msg}</div>`;
+            }
         } catch(e) { grid.innerHTML = `<div class="text-danger">Err:${e}</div>`; }
         finally { btn.disabled = false; btn.innerText = "🔍"; }
     }
@@ -1224,7 +1275,7 @@
                                     ${editBtn}
                                     ${actionBtnHtml}
                                 </div>
-                                <button class="btn btn-sm btn-outline-danger" onclick="deleteHistory('${item.name}', this)">删除</button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteHistory('${item.json_file}', this)">删除</button>
                             </div>
                         </div>
                     </div>
@@ -1267,6 +1318,7 @@
             if(params.bgm_file) document.getElementById('bgmSelect').value = params.bgm_file;
             if(params.bgm_volume) document.getElementById('bgmVol').value = params.bgm_volume;
             if(params.audio_padding) document.getElementById('audioPadding').value = params.audio_padding;
+            if(params.search_source) document.querySelector(`input[name="search_source"][value="${params.search_source}"]`).checked = true;
             if(params.tts_rate) document.getElementById('ttsRate').value = params.tts_rate.replace(/[+%]/g, '');
             
             // 恢复字幕样式 (如果有)
@@ -1324,6 +1376,7 @@
             emphasis: { size: document.getElementById('empSize').value, color: document.getElementById('empColor').value, outline: document.getElementById('empOutline').value }
         };
         const rateVal = document.getElementById('ttsRate').value;
+        const searchMode = document.querySelector('input[name="search_source"]:checked').value;
         const payload = {
             client_id: CLIENT_ID, // 唯一ID用于轮询
             scenes: globalScenes, 
@@ -1332,7 +1385,8 @@
             bgm_volume: parseFloat(document.getElementById('bgmVol').value),
             audio_padding: parseFloat(document.getElementById('audioPadding').value), 
             tts_rate: (rateVal>=0?"+":"")+rateVal+"%", 
-            subtitle_style: style
+            subtitle_style: style,
+            search_source: searchMode
         };
         
         try { 

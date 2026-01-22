@@ -15,3 +15,6 @@ typing-extensions>=4.5.0
 openai>=1.0.0
 pyinstaller>=5.13.0
 gradio_client
+torch
+torchvision
+opencv-python

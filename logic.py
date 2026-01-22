@@ -1,3 +1,8 @@
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
+
+import torch
+import clip
 import os
 import random
 import json
@@ -16,6 +21,7 @@ from moviepy.editor import *
 from moviepy.audio.AudioClip import AudioArrayClip
 import numpy as np
 from openai import OpenAI
+from vfx_core import VisualEffects
 
 # 强制 MoviePy 使用内置 FFmpeg
 if os.path.exists(config.FFMPEG_BINARY):
@@ -68,6 +74,323 @@ class VideoEngine:
             os.makedirs(os.path.join(self.ASSETS_DIR, d), exist_ok=True)
         os.makedirs(self.TEMP_DIR, exist_ok=True)
         os.makedirs(config.OUTPUT_DIR, exist_ok=True)
+
+        # === [新增] 向量数据库初始化 ===
+        self.vector_index_path = os.path.join(config.ASSETS_DIR, "vector_index.pt") # 假设你的索引在这里
+        self.clip_model_path = "ViT-B-32.pt" # 你的本地模型路径
+        self.device = "mps" if torch.backends.mps.is_available() else "cpu"
+        self.clip_model = None
+        self.clip_preprocess = None
+        self.vector_db = None
+        
+    def _load_vector_resources(self):
+        """懒加载：只有用到向量搜索时才加载，节省内存"""
+        if self.clip_model is None:
+            print(f"🧠 Loading CLIP model...")
+            if os.path.exists(self.clip_model_path):
+                self.clip_model, self.clip_preprocess = clip.load(self.clip_model_path, device=self.device)
+            else:
+                self.clip_model, self.clip_preprocess = clip.load("ViT-B/32", device=self.device)
+            
+        if self.vector_db is None:
+            if os.path.exists(self.vector_index_path):
+                print(f"📂 Loading Vector Index...")
+                self.vector_db = torch.load(self.vector_index_path)
+                # 预加载向量到显存/内存加速计算
+                if len(self.vector_db) > 0:
+                    self.db_vectors = torch.cat([item['vector'] for item in self.vector_db]).to(self.device)
+            else:
+                print("⚠️ Vector index not found.")
+                self.vector_db = []
+
+    async def generate_tts_audio(self, text, voice, output_path, engine="edge", sovits_url=None):
+        """
+        统一的语音生成接口
+        engine: 'edge' | 'sovits'
+        """
+        # 1. GPT-SoVITS 逻辑
+        if engine == "sovits" and sovits_url:
+            try:
+                # 这里假设 SoVITS 兼容标准 API 格式，根据你实际部署的情况调整
+                payload = {
+                    "text": text,
+                    "text_language": "zh"
+                }
+                # 注意：requests 是同步的，建议用 aiohttp，这里为了简单演示用 requests
+                # 实际生产中最好放入线程池
+                def _run_request():
+                    return requests.post(f"{sovits_url}/tts", json=payload, timeout=10)
+                
+                resp = await asyncio.to_thread(_run_request)
+                
+                if resp.status_code == 200:
+                    with open(output_path, "wb") as f:
+                        f.write(resp.content)
+                    return True
+            except Exception as e:
+                print(f"❌ SoVITS Error: {e}, falling back to Edge-TTS")
+        
+        # 2. Edge-TTS 逻辑 (默认)
+        try:
+            communicate = edge_tts.Communicate(text, voice)
+            await communicate.save(output_path)
+            return True
+        except Exception as e:
+            print(f"❌ Edge-TTS Error: {e}")
+            return False
+    # --- 从向量库随机获取一个没用过的视频 ---
+    def _get_random_vector_clip(self, exclude_set):
+        """
+        兜底逻辑：当搜索不到素材，或者素材不够填满时间时，
+        从库里随机捞一个没用过的视频。
+        """
+        self._load_vector_resources()
+        if not self.vector_db: return None
+        
+        # 尝试 50 次寻找未使用的
+        for _ in range(50):
+            item = random.choice(self.vector_db)
+            path = item['path']
+            if os.path.exists(path) and path not in exclude_set:
+                return path
+        
+        # 如果实在找不到（库太小），只能勉强复用一个
+        item = random.choice(self.vector_db)
+        return item['path'] if os.path.exists(item['path']) else None
+
+    def search_vector_match(self, query, top_k=5, exclude_set=None):
+        """
+        返回 Top K 个结果，且不在 exclude_set 中
+        """
+        self._load_vector_resources()
+        if not self.vector_db or self.db_vectors is None: return []
+        if exclude_set is None: exclude_set = set()
+
+        with torch.no_grad():
+            text_input = clip.tokenize([query]).to(self.device)
+            text_features = self.clip_model.encode_text(text_input)
+            text_features /= text_features.norm(dim=-1, keepdim=True)
+            
+            similarity = (100.0 * text_features @ self.db_vectors.T).softmax(dim=-1)
+            values, indices = similarity[0].topk(min(top_k * 2, len(self.vector_db))) # 多取一点方便过滤
+            
+        results = []
+        for i in range(len(indices)):
+            idx = indices[i].item()
+            item = self.vector_db[idx]
+            path = item['path']
+            
+            # 核心：过滤掉不存在的文件 和 全局已使用的文件
+            if os.path.exists(path) and path not in exclude_set:
+                results.append(path)
+                if len(results) >= top_k: break
+                
+        return results
+
+    def get_video_clip_smart(self, video_info, duration, use_vector=True, use_pexels=True):
+        """
+        智能获取视频素材：
+        1. 本地文件名精确匹配
+        2. 向量数据库模糊匹配 (新增)
+        3. Pexels 在线搜索
+        4. 兜底逻辑
+        """
+        # 解析 video_info (兼容前端传来的各种格式)
+        search_query = ""
+        if isinstance(video_info, dict):
+            if video_info.get('type') == 'local' and os.path.exists(video_info.get('src', '')):
+                return VideoFileClip(video_info['src']) # 绝对路径直接返回
+            search_query = video_info.get('tags', '') or video_info.get('name', '')
+        elif isinstance(video_info, str):
+            search_query = video_info
+
+        # A. 向量搜索 (如果开启)
+        if use_vector and search_query:
+            matches = self.search_vector_match(search_query)
+            if matches:
+                # 策略：如果有多个匹配，且时长不够，这里可以做多镜头拼接 (参考之前的逻辑)
+                # 这里简单处理：随机选一个匹配度高的
+                best_match = matches[0]
+                print(f"✅ Vector Match: {search_query} -> {os.path.basename(best_match)}")
+                return self._process_clip(best_match, duration)
+
+        # B. Pexels 在线搜索 (如果开启)
+        if use_pexels and search_query:
+            # 复用你原有的 download_video 逻辑，这里简化演示
+            # pexels_file = self.download_video(search_query) 
+            # if pexels_file: ...
+            pass 
+
+        # C. 兜底 (随机本地)
+        # ... (保留你原有的兜底逻辑) ...
+        return ColorClip(size=(1920, 1080), color=(0,0,0), duration=duration)
+
+    def get_dynamic_visuals_smart(self, candidate_paths, target_duration, global_used_set, effect_config=None):
+        """
+        effect_config: JSON中的 visual_effect 字段
+        """
+        clips = []
+        current_duration = 0.0
+        candidate_queue = list(candidate_paths)
+        
+        # 默认特效配置
+        if not effect_config: 
+            effect_config = {"camera": "Zoom_In_Slow", "filter": "None"}
+
+        while current_duration < target_duration:
+            selected_path = None
+            
+            # A. 优先从候选池拿
+            if candidate_queue:
+                selected_path = candidate_queue.pop(0)
+                if selected_path in global_used_set: selected_path = None
+            
+            # B. 随机兜底
+            if not selected_path:
+                selected_path = self._get_random_vector_clip(global_used_set)
+                if not selected_path: break
+
+            try:
+                global_used_set.add(selected_path)
+                
+                # 1. 加载基础视频
+                clip = VideoFileClip(selected_path).without_audio()
+                
+                # 2. 【绝对静态】的尺寸预处理 (Reset to 1080p)
+                # 这一步保证进入 VFX 之前，视频是标准的 1920x1080 整数尺寸
+                target_h = 1080
+                target_w = 1920
+                
+                if clip.h != target_h: 
+                    clip = clip.resize(height=target_h)
+                
+                if clip.w > target_w:
+                    # 静态居中裁剪
+                    x_c = clip.w // 2
+                    half_w = target_w // 2
+                    clip = clip.crop(x1=x_c - half_w, width=target_w, height=target_h)
+                elif clip.w < target_w:
+                    clip = clip.resize(width=target_w)
+                    y_c = clip.h // 2
+                    half_h = target_h // 2
+                    clip = clip.crop(y1=y_c - half_h, width=target_w, height=target_h)
+                
+                # -----------------------------------------------------------
+                # 3. [应用 Plan B 特效] 
+                # 调用新的 vfx_core (OpenCV版)
+                
+                from vfx_core import VisualEffects
+                
+                camera_move = effect_config.get("camera", "Zoom_In_Slow")
+                filter_type = effect_config.get("filter", "None")
+                
+                # 先滤镜
+                clip = VisualEffects.apply_filter(clip, filter_type)
+                # 后运镜 (现在是像素级处理，不涉及元数据，绝对安全)
+                clip = VisualEffects.apply_camera_movement(clip, camera_move)
+                # -----------------------------------------------------------
+                
+                clips.append(clip)
+                current_duration += clip.duration
+                
+            except Exception as e:
+                print(f"⚠️ Clip Error {selected_path}: {e}")
+                continue
+
+        # 兜底：如果没生成任何片段
+        if not clips:
+            print("⚠️ No clips valid, returning black screen.")
+            return ColorClip(size=(1920, 1080), color=(0,0,0), duration=target_duration)
+
+        # 4. 拼接
+        # method="compose" 比 "chain" 更稳健，能处理不同属性的视频
+        final_clip = concatenate_videoclips(clips, method="compose")
+        
+        # 5. 时间修剪
+        if final_clip.duration >= target_duration:
+            final_clip = final_clip.subclip(0, target_duration)
+        else:
+            final_clip = final_clip.loop(duration=target_duration)
+            
+        return final_clip
+
+    def _process_clip(self, path, duration):
+        """统一的素材处理：静音、循环、裁剪"""
+        try:
+            vc = VideoFileClip(path).without_audio()
+            if vc.duration < duration:
+                vc = vc.loop(duration=duration)
+            else:
+                vc = vc.subclip(0, duration)
+            return vc.resize(height=1080).crop(x1=vc.w/2-960, width=1920, height=1080)
+        except:
+            return ColorClip(size=(1920, 1080), color=(0,0,0), duration=duration)
+
+    def parse_direct_json(self, json_data):
+        scenes = []
+        timeline = json_data.get('timeline', [])
+        
+        print("🔍 Pre-scanning vector database for frontend preview...")
+        
+        for block in timeline:
+            # 提取关键词
+            visual_tags = block.get('visual_search_queries', [])
+            # 提取特效配置
+            visual_effect = block.get('visual_effect', {})
+            
+            # 提取音效名 (用于后续查找)
+            sfx_name = block.get('center_highlight', {}).get('sfx', '')
+
+            # === [新增] 预搜索视频 ===
+            # 这里只搜 Top 1，用于给前端展示“由于使用了这个关键词，匹配到了这个视频”
+            # 实际渲染时会搜 Top 5 进行填充，这里只是预览
+            preview_video = "random"
+            if visual_tags:
+                # 使用第一个关键词去搜
+                matches = self.search_vector_match(visual_tags[0], top_k=1)
+                if matches:
+                    # 返回给前端绝对路径，或者基于 server.py 的相对 URL
+                    # 假设前端能通过文件协议或静态服务访问
+                    preview_video = matches[0] 
+
+            scene = {
+                "text": block['sentence_text'],
+                "visual_tags": visual_tags, 
+                "video": preview_video, # 前端拿到这个字段就可以显示了
+                
+                # 将特效配置传递下去
+                "visual_effect": visual_effect,
+                
+                "keywords": block.get('center_highlight', {}).get('text', ''),
+                "is_emphasis": block.get('center_highlight', {}).get('enabled', False),
+                "sfx": sfx_name,
+                
+                "voice": config.DEFAULT_VOICE,
+                "audio_padding": 0.2
+            }
+            scenes.append(scene)
+            
+        return scenes
+
+    def _get_random_vector_clip(self, exclude_set):
+        """
+        兜底逻辑：当搜索不到素材，或者素材不够填满时间时，
+        从库里随机捞一个没用过的视频。
+        """
+        self._load_vector_resources()
+        if not self.vector_db: return None
+        
+        # 尝试 50 次寻找未使用的
+        for _ in range(50):
+            item = random.choice(self.vector_db)
+            path = item['path']
+            if os.path.exists(path) and path not in exclude_set:
+                return path
+        
+        # 如果实在找不到（库太小），只能勉强复用一个
+        item = random.choice(self.vector_db)
+        return item['path'] if os.path.exists(item['path']) else None
+
 
     def set_api_keys(self, pexels, pixabay):
         self.runtime_pexels_key = pexels.strip()
@@ -351,22 +674,48 @@ class VideoEngine:
             return results
         except: return {"error": "SFX Error"}
 
-    def download_sfx_manual(self, query, download_url=None):
+    # --- 音效查找：支持模糊匹配 ---
+    def _find_local_sfx(self, keyword):
+        """
+        在 assets/sfx 目录下模糊查找包含 keyword 的文件
+        例如 keyword="Boom", 可以匹配到 "Impact_Boom_01.mp3"
+        """
+        if not keyword: return None
         sfx_dir = os.path.join(self.ASSETS_DIR, "sfx")
-        if download_url:
-            try:
-                base = f"auto_{self.sanitize_filename(query)}"
-                fname = f"{base}.mp3"
-                path = os.path.join(sfx_dir, fname)
-                if not os.path.exists(path):
-                    c = requests.get(download_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=30).content
-                    with open(path, 'wb') as f: f.write(c)
-                return fname
-            except: return None
-        else:
-            return self.get_dynamic_sfx(query, sfx_dir)
+        if not os.path.exists(sfx_dir): return None
+        
+        # 获取所有音频文件
+        files = [f for f in os.listdir(sfx_dir) if f.lower().endswith(('.mp3', '.wav', '.aac', '.m4a'))]
+        
+        keyword = keyword.lower().strip()
+        
+        # 1. 优先：文件名以 keyword 开头 (例如 "Boom_01.mp3")
+        for f in files:
+            if f.lower().startswith(keyword):
+                return os.path.join(sfx_dir, f)
 
-    def get_dynamic_sfx(self, search_term, save_dir):
+        # 2. 次选：文件名包含 keyword (例如 "Cinematic_Boom.mp3")
+        for f in files:
+            if keyword in f.lower():
+                return os.path.join(sfx_dir, f)
+        
+        return None
+
+    def download_sfx_manual(self, query, download_url=None):
+        # 1. 先尝试本地模糊搜索
+        local_path = self._find_local_sfx(query)
+        if local_path:
+            print(f"   🔊 Local SFX Found: '{query}' -> {os.path.basename(local_path)}")
+            return os.path.basename(local_path) # 返回文件名即可，后续逻辑会处理路径
+
+        # 2. 如果没找到且有 URL，尝试下载 (保留原有逻辑)
+        if download_url:
+            return self.get_dynamic_sfx(query, os.path.join(self.ASSETS_DIR, "sfx"), download_url=download_url)
+            
+        # 3. 都没有，尝试去在线库匹配 (MyInstants等，保留原有逻辑)
+        return self.get_dynamic_sfx(query, os.path.join(self.ASSETS_DIR, "sfx"))
+
+    def get_dynamic_sfx(self, search_term, save_dir, download_url=None):
         if not search_term: return None
         local = [f for f in os.listdir(save_dir) if not f.startswith('.')]
         for f in local:
@@ -388,6 +737,17 @@ class VideoEngine:
                 with open(p, 'wb') as f: f.write(c)
                 return p
             except: pass
+
+        if download_url:
+            try:
+                base = f"auto_{self.sanitize_filename(search_term)}.mp3"
+                path = os.path.join(save_dir, base)
+                if not os.path.exists(path):
+                    c = requests.get(download_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=15).content
+                    with open(path, 'wb') as f: f.write(c)
+                return base
+            except: pass
+            
         return None
 
     def load_sfx_resource(self, sfx_query, sfx_dir):
@@ -460,147 +820,177 @@ class VideoEngine:
         except:
             return ColorClip(size=(1920, 1080), color=(0,0,0), duration=duration)
 
-    def analyze_script(self, text):
+    def analyze_script(self, text, search_source="vector"):
+        """
+        文本转分镜
+        search_source: 'vector' (优先本地) | 'pexels' (只用在线)
+        """
         print(f"🤖 Calling LLM: {self.llm_model_name}...")
         import concurrent.futures
 
-        # 1. 预处理：先分句
+        # 1. 预处理：分句
         text_clean_for_split = re.sub(r'[\(（].*?[\)）]', '', text).strip()
         pre_split_segments = self.smart_split_text(text_clean_for_split, max_chars=30)
         if not pre_split_segments: return []
 
         total_segments = len(pre_split_segments)
-        print(f"📝 总计 {total_segments} 个分镜，准备分批并行处理...")
+        print(f"📝 总计 {total_segments} 个分镜，准备分析...")
 
-        # --- 配置 ---
-        BATCH_SIZE = 8  # 每批处理 8 句 (根据显存/API限制调整，推荐 5-10)
-        
-        # 如果是本地 Ollama，并发设为 1 避免显存爆炸；如果是 API (OpenAI/DeepSeek等)，可以设为 3-5
+        # 配置并发
+        BATCH_SIZE = 8
         MAX_WORKERS = 1 if self.llm_provider == 'ollama' else 4 
-
-        # 结果容器，预先占位，保证顺序
         final_results = [None] * total_segments
 
-        # 定义单个批次的处理函数
         def process_batch(batch_data):
             batch_index, segment_chunk = batch_data
-            
-            # 构造仅包含文本的列表供 LLM 分析
             chunk_json = json.dumps(segment_chunk, ensure_ascii=False)
 
-            # 优化后的 Prompt：明确要求不返回原文，减少生成时间
+            # === [核心修改] 提示词升级：增加 'fx' (VFX) 字段 ===
+            if search_source == 'vector':
+                fx_prompt = """
+                **具象主体** (适合Pexels): 具体的动作或物体，如 "man running", "clock ticking", "fist hitting table"。
+                """
+            else:
+                fx_prompt = """
+                **情绪氛围** (适合向量库): 抽象的感觉，如 "anxiety", "loneliness", "oppression", "chaos"。
+                """
+
             prompt = f"""
-            你是一个视频脚本分析师。请分析输入的文案列表。
+            你是一个视频脚本导演。请分析输入的文案列表。
             
             【输入数据】
             {chunk_json}
             
             【任务】
-            按顺序为每一句生成 JSON 对象，**不要返回原文(text字段)**，仅返回分析属性。
+            按顺序为每一句生成 JSON 对象。
             
             【属性要求】
-            1. "v": (visual_tags) 提取句子中的实体名词，翻译成 1-2 个**英文单词** (用于搜视频)。不要用抽象词。
-            2. "k": (keywords) 提取句子中 1-3 个字的**中文重点词** (用于字幕高亮)。
-            3. "s": (sfx) 音效。**只有**当句子包含"震惊、转折、强调、疑问"语气时才填 ( whoosh, ding, boom, keyboard, pop)，**普通叙述请留空字符串**，不要每句都填！
-            4. "e": (is_emphasis) Boolean，是否为金句/标题 (true/false)。
+            1. "v": (visual_tags) 返回一个包含 2-3 个英文短语的数组 (Array)，必须覆盖以下维度以提高匹配率：
+               {fx_prompt}
+               - 例如: ["man sitting alone", "solitude", "dark noir style"]
+            2. "k": (keywords) 提取 1-3 个字的中文重点词 (用于字幕高亮)。
+            3. "s": (sfx) 音效。可选 [Boom, Whoosh, Ding, Keyboard, Glass_Shatter, Silence]。无则留空。
+            4. "e": (is_emphasis) Boolean，是否为金句 (true/false)。
+            5. "fx": (visual_effect) 运镜指令。根据句子情绪选择：
+               - "Zoom_In_Slow" (默认，通用)
+               - "Zoom_In_Fast" (强调、震惊)
+               - "Pan_Right" (叙述、过程)
+               - "Shake" (焦虑、混乱、痛苦)
+               - "Slow_Mo" (史诗、总结、唯美)
             
             【输出格式】
-            严格的 JSON 列表，不需要 Markdown 标记，例如：
+            纯 JSON 列表，无 Markdown：
             [
-              {{"v": ["city", "night"], "k": "夜景", "s": "whoosh", "e": false}},
-              {{"v": ["money"], "k": "赚钱", "s": "ding", "e": true}}
+              {{"v": ["city", "night"], "k": "夜景", "s": "whoosh", "e": false, "fx": "Pan_Right"}},
+              {{"v": ["fist", "punch"], "k": "反击", "s": "boom", "e": true, "fx": "Zoom_In_Fast"}}
             ]
             """
             
             try:
-                # 调用 LLM
                 response = self._call_llm(prompt)
-                
                 # 清洗 JSON
                 clean_content = re.sub(r'```json\s*', '', response)
                 clean_content = re.sub(r'```', '', clean_content).strip()
-                # 尝试提取列表部分
                 s = clean_content.find('[')
                 e = clean_content.rfind(']') + 1
                 if s != -1 and e != -1:
                     clean_content = clean_content[s:e]
-                
                 return batch_index, json.loads(clean_content)
             except Exception as e:
                 print(f"⚠️ Batch {batch_index} Error: {e}")
                 return batch_index, []
 
-        # 2. 准备批次数据
+        # 执行 LLM 分析
         batches = []
         for i in range(0, total_segments, BATCH_SIZE):
             chunk = pre_split_segments[i : i + BATCH_SIZE]
             batches.append((i, chunk))
 
-        # 3. 并行/串行执行
-        # 使用 ThreadPoolExecutor 进行并发请求
         with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             future_to_batch = {executor.submit(process_batch, b): b for b in batches}
-            
             for future in concurrent.futures.as_completed(future_to_batch):
                 start_idx, result_list = future.result()
-                
-                # 回填数据
                 chunk_len = len(batches[start_idx // BATCH_SIZE][1])
                 
                 for offset in range(chunk_len):
                     abs_index = start_idx + offset
                     original_text = pre_split_segments[abs_index]
                     
-                    # 默认兜底数据
+                    # 默认数据
                     scene_data = {
                         "text": original_text,
                         "visual_tags": ["abstract"],
                         "keywords": "",
                         "sfx_search": "",
-                        "is_emphasis": False
+                        "is_emphasis": False,
+                        "visual_effect": {"camera": "Zoom_In_Slow", "filter": "None"} # 默认特效
                     }
                     
-                    # 尝试读取 LLM 结果
                     if result_list and offset < len(result_list):
                         item = result_list[offset]
-                        # 映射简写字段回完整字段
                         scene_data["visual_tags"] = item.get("v", ["abstract"])
                         scene_data["keywords"] = item.get("k", "")
                         scene_data["sfx_search"] = item.get("s", "")
                         scene_data["is_emphasis"] = item.get("e", False)
+                        
+                        # [新增] 解析运镜指令
+                        fx_code = item.get("fx", "Zoom_In_Slow")
+                        # 简单的逻辑：如果是 Shake，滤镜加个 High_Contrast 增加氛围
+                        filter_code = "High_Contrast" if fx_code == "Shake" else "None"
+                        scene_data["visual_effect"] = {"camera": fx_code, "filter": filter_code}
                     
                     final_results[abs_index] = scene_data
 
-        # 4. 后处理：资源匹配 (搜图/搜视频)
-        # 这部分逻辑保持不变，但移到了最后统一处理
-        print("🔍 正在匹配视频素材...")
+        # 4. 后处理：资源匹配 (根据 search_source 参数)
+        print(f"🔍 正在匹配视频素材 (Mode: {search_source})...")
         used_identifiers = set()
         final_scenes = []
 
         for scene_data in final_results:
-            # 防止前面的并发错误导致 None
             if scene_data is None: continue 
             
-            # 处理 keywords 格式
+            # 格式化 keywords
             kw = scene_data.get('keywords')
             if isinstance(kw, list): scene_data['keywords'] = ", ".join([str(k) for k in kw])
             elif kw is None: scene_data['keywords'] = ""
             else: scene_data['keywords'] = str(kw)
 
-            # 默认参数
             scene_data['voice'] = config.DEFAULT_VOICE
-            scene_data['video_info'] = {"type": "local", "src": "", "name": "random"} 
+            scene_data['video_info'] = {"type": "smart_search", "tags": []} 
             
             tags = scene_data.get('visual_tags', [])
+            if isinstance(tags, str): tags = [tags]
+            scene_data['video_info']['tags'] = tags
+
+            match_found = False
+            main_tag = tags[0] if tags else "abstract"
+
+            # ================= [核心修改] 搜索分支控制 =================
             
-            # --- 资源搜索逻辑 (复用原有的逻辑) ---
-            if tags:
-                search_query = tags[0]
-                # 1. 搜在线
-                online_info = self.search_online_videos(search_query)
-                selected_vid = None
+            # --- 分支 A: 优先向量搜索 (默认) ---
+            if search_source == "vector":
+                vector_matches = self.search_vector_match(main_tag, top_k=1)
+                if vector_matches:
+                    best_path = vector_matches[0]
+                    scene_data['video_info'] = {
+                        "type": "local", 
+                        "src": best_path, 
+                        "name": os.path.basename(best_path),
+                        "tags": tags 
+                    }
+                    print(f"   ✅ Vector Hit: {main_tag} -> {os.path.basename(best_path)}")
+                    match_found = True
+            
+            # --- 分支 B: Pexels 搜索 (作为 fallback 或 指定模式) ---
+            # 如果模式是 'pexels'，或者模式是 'vector' 但没搜到
+            if not match_found and (search_source == "pexels" or search_source == "vector"):
+                # 如果是 vector 模式没搜到，打印日志
+                if search_source == "vector":
+                    print(f"   🌐 Vector Miss, trying Pexels: {main_tag}")
                 
+                online_info = self.search_online_videos(main_tag)
                 if isinstance(online_info, list) and online_info:
+                    selected_vid = None
                     for vid in online_info:
                         if str(vid['id']) not in used_identifiers:
                             selected_vid = vid
@@ -608,26 +998,20 @@ class VideoEngine:
                             break
                     if not selected_vid: selected_vid = random.choice(online_info)
                     scene_data['video_info'] = selected_vid
-                else:
-                    # 2. 搜本地
-                    local = self.search_local_videos(search_query)
-                    if local:
-                        target = None
-                        random.shuffle(local)
-                        for f in local:
-                            if f not in used_identifiers:
-                                target = f
-                                used_identifiers.add(f)
-                                break
-                        if not target: target = random.choice(local)
-                        scene_data['video_info'] = {"type": "local", "name":target, "src":f"/static/video/{target}"}
-            
+                    match_found = True
+
+            # 3. 兜底
+            if not match_found:
+                scene_data['video_info'] = {"type": "random", "tags": tags}
+
             final_scenes.append(scene_data)
 
         return final_scenes
 
     # --- 渲染核心 ---
     async def render_project(self, params, output_file, log_callback=None):
+        # 全局去重集合，贯穿整个视频
+        global_used_paths = set() 
         loop = asyncio.get_running_loop()
         
         async def log(msg):
@@ -642,6 +1026,7 @@ class VideoEngine:
             global_padding = float(params.get('audio_padding', 0)) 
             tts_rate = params.get('tts_rate', config.DEFAULT_TTS_RATE)
             sub_style = params.get('subtitle_style', {})
+            search_source = params.get('search_source', 'vector')
 
             json_file = output_file.replace('.mp4', '.json')
             try:
@@ -767,7 +1152,71 @@ class VideoEngine:
                              await log(f"   🔊 添加音效: {os.path.basename(sp)}")
                          except: pass
 
-                vc = self.get_video_clip_safe(video_info, scene_total_duration, log)
+                
+
+                # 初始化 vc (Video Clip)
+                vc = None
+
+                # --- 分支 A: 向量库 + 智能混剪 + 动效 (Vector Mode) ---
+                if search_source == 'vector':
+                    effect_config = scene.get('visual_effect', {})
+                    candidate_pool = []
+                    
+                    # [关键修改] Step 1: 检查是否已有指定的本地视频 (用户已选 或 预览已锁定)
+                    v_info = scene.get('video_info', {})
+                    specific_path = None
+                    
+                    if isinstance(v_info, dict) and v_info.get('type') == 'local':
+                        # 优先取 download_url (后端存储的绝对路径)，其次取 src
+                        p = v_info.get('download_url') or v_info.get('src')
+                        if p and os.path.exists(p):
+                            specific_path = p
+                    
+                    if specific_path:
+                        print(f"   🔒 [Locked] Using specific clip: {os.path.basename(specific_path)}")
+                        # 如果锁定了视频，候选池里只放这一条
+                        # get_dynamic_visuals_smart 会优先用它，如果时长不够，会根据逻辑循环它或者随机填充
+                        candidate_pool = [specific_path]
+                        
+                    else:
+                        # [原逻辑] Step 2: 没有指定视频，才进行关键词搜索
+                        raw_queries = scene.get('visual_tags', [])
+                        if isinstance(raw_queries, str): raw_queries = [raw_queries]
+                        if not raw_queries:
+                            kw = scene.get('keywords', '')
+                            if kw: raw_queries = [kw]
+                        
+                        if raw_queries:
+                            print(f"   🔍 [Auto] Searching: {raw_queries}")
+                            for q in raw_queries:
+                                matches = self.search_vector_match(q, top_k=3, exclude_set=global_used_paths)
+                                candidate_pool.extend(matches)
+
+                    # Step 3: 调用智能填充
+                    # 注意：如果 candidate_pool 是用户锁定的 1 个视频，Smart Fill 会优先使用它。
+                    # 如果这 1 个视频不够长，Smart Fill 目前的逻辑是会去随机库里拿视频补。
+                    # 如果你希望“锁定了就只循环这一个，不要补其他的”，需要改 Smart Fill，但目前逻辑符合“混剪”调性。
+                    vc = self.get_dynamic_visuals_smart(
+                        candidate_pool, 
+                        scene_total_duration, 
+                        global_used_paths,
+                        effect_config=effect_config
+                    )
+
+                # --- 分支 B: Pexels / 传统模式 (Legacy Mode) ---
+                else:
+                    print(f"   🌐 [Pexels Mode] Fetching video...")
+                    # 传统的下载逻辑 (scene['video_info'] 里通常是 Pexels URL)
+                    vc = self.get_video_clip_safe(video_info, scene_total_duration, log)
+                    
+                    if vc.duration > scene_total_duration:
+                        vc = vc.subclip(0, scene_total_duration)
+                    elif vc.duration < scene_total_duration:
+                        vc = vc.loop(duration=scene_total_duration)
+                    
+                    vc = vc.set_duration(scene_total_duration)
+                    
+
                 
                 # --- [核心修复：物理截取视频] ---
                 # 1. 确保视频被物理截断到指定时长

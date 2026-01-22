@@ -1,0 +1,728 @@
+{
+    "project_meta": {
+        "title": "深度社交的残酷真相",
+        "theme": "High_Cognition_Cyberpunk"
+    },
+    "timeline": [
+        {
+            "id": 1,
+            "block_type": "HOOK",
+            "sentence_text": "你以为的社交，可能在慢慢掏空你的”关系价值“。",
+            "duration_estimate": 4.0,
+            "visual_search_queries": [
+                "hand reaching into chest pulling glowing core dark cinematic",
+                "battery draining animation macro cyberpunk"
+            ],
+            "visual_effect": {
+                "camera": "Zoom_In_Fast",
+                "filter": "High_Contrast"
+            },
+            "center_highlight": {
+                "enabled": true,
+                "text": "掏空",
+                "style": "Red_Glitch",
+                "sfx": "Boom"
+            }
+        },
+        {
+            "id": 2,
+            "block_type": "HOOK",
+            "sentence_text": "真心建议你：停止无效社交，转向「深度社交」",
+            "duration_estimate": 4.5,
+            "visual_search_queries": [
+                "crowd blurred fast motion stop suddenly",
+                "person turning away from noisy crowd cinematic"
+            ],
+            "visual_effect": {
+                "camera": "Shake",
+                "filter": "High_Contrast"
+            },
+            "center_highlight": {
+                "enabled": true,
+                "text": "无效社交",
+                "style": "Red_Glitch",
+                "sfx": "Glass_Shatter"
+            }
+        },
+        {
+            "id": 3,
+            "block_type": "HOOK",
+            "sentence_text": "深度社交的本质，根本不是热闹寒暄。",
+            "duration_estimate": 3.2,
+            "visual_search_queries": [
+                "crowded party faces blur noise glitch",
+                "people talking mouths moving no sound"
+            ],
+            "visual_effect": {
+                "camera": "Pan_Right",
+                "filter": "Black_White"
+            },
+            "center_highlight": {
+                "enabled": true,
+                "text": "不是寒暄",
+                "style": "Red_Glitch",
+                "sfx": "Whoosh"
+            }
+        },
+        {
+            "id": 4,
+            "block_type": "HOOK",
+            "sentence_text": "而是绝大多数人不具备的能力——价值共振。",
+            "duration_estimate": 4.2,
+            "visual_search_queries": [
+                "tuning forks vibrating together macro dark",
+                "sound wave resonance visualization cyberpunk"
+            ],
+            "visual_effect": {
+                "camera": "Slow_Mo",
+                "filter": "Cyberpunk"
+            },
+            "center_highlight": {
+                "enabled": true,
+                "text": "价值共振",
+                "style": "Red_Glitch",
+                "sfx": "Electricity_Buzz"
+            }
+        },
+        {
+            "id": 5,
+            "block_type": "PAIN",
+            "sentence_text": "你以为多见几次面、多聊几句天，关系就会变近。",
+            "duration_estimate": 4.2,
+            "visual_search_queries": [
+                "repeated meetings same distance wide shot",
+                "two people shaking hands loop awkward"
+            ],
+            "visual_effect": {
+                "camera": "Static",
+                "filter": "Black_White"
+            },
+            "center_highlight": {
+                "enabled": false,
+                "text": "",
+                "style": "White_Clean",
+                "sfx": "Silence"
+            }
+        },
+        {
+            "id": 6,
+            "block_type": "PAIN",
+            "sentence_text": "真相是，很多关系越聊越空，",
+            "duration_estimate": 3.0,
+            "visual_search_queries": [
+                "speech bubbles deflating dark",
+                "mouth talking words falling apart"
+            ],
+            "visual_effect": {
+                "camera": "Zoom_In_Fast",
+                "filter": "Black_White"
+            },
+            "center_highlight": {
+                "enabled": true,
+                "text": "越聊越空",
+                "style": "Red_Glitch",
+                "sfx": "Glass_Shatter"
+            }
+        },
+        {
+            "id": 7,
+            "block_type": "PAIN",
+            "sentence_text": "到最后只剩下尴尬的点赞和无意义的客套。",
+            "duration_estimate": 4.5,
+            "visual_search_queries": [
+                "social media like button empty loop",
+                "forced smile handshake close up"
+            ],
+            "visual_effect": {
+                "camera": "Shake",
+                "filter": "Black_White"
+            },
+            "center_highlight": {
+                "enabled": true,
+                "text": "无意义",
+                "style": "Red_Glitch",
+                "sfx": "Ding"
+            }
+        },
+        {
+            "id": 8,
+            "block_type": "STORY",
+            "sentence_text": "你一定经历过这样的场景。",
+            "duration_estimate": 2.6,
+            "visual_search_queries": [
+                "person standing alone after party",
+                "crowd fades isolation cinematic"
+            ],
+            "visual_effect": {
+                "camera": "Slow_Mo",
+                "filter": "High_Contrast"
+            },
+            "center_highlight": {
+                "enabled": false,
+                "text": "",
+                "style": "White_Clean",
+                "sfx": "Silence"
+            }
+        },
+        {
+            "id": 9,
+            "block_type": "STORY",
+            "sentence_text": "饭局很热闹，话题从工作聊到生活，",
+            "duration_estimate": 4.5,
+            "visual_search_queries": [
+                "banquet table laughing people cinematic",
+                "wine glasses clinking slow motion"
+            ],
+            "visual_effect": {
+                "camera": "Pan_Right",
+                "filter": "Warm_Light"
+            },
+            "center_highlight": {
+                "enabled": false,
+                "text": "",
+                "style": "White_Clean",
+                "sfx": "Whoosh"
+            }
+        },
+        {
+            "id": 10,
+            "block_type": "STORY",
+            "sentence_text": "每个人都在笑，也都在说，",
+            "duration_estimate": 3.0,
+            "visual_search_queries": [
+                "laughing mouths overlapping close up",
+                "chaotic conversations cinematic"
+            ],
+            "visual_effect": {
+                "camera": "Shake",
+                "filter": "Warm_Light"
+            },
+            "center_highlight": {
+                "enabled": false,
+                "text": "",
+                "style": "White_Clean",
+                "sfx": "Silence"
+            }
+        },
+        {
+            "id": 11,
+            "block_type": "PAIN",
+            "sentence_text": "可散场之后，你突然意识到一件事——",
+            "duration_estimate": 3.8,
+            "visual_search_queries": [
+                "empty restaurant chairs mess",
+                "lights turning off slow motion"
+            ],
+            "visual_effect": {
+                "camera": "Slow_Mo",
+                "filter": "Black_White"
+            },
+            "center_highlight": {
+                "enabled": true,
+                "text": "散场",
+                "style": "Red_Glitch",
+                "sfx": "Whoosh"
+            }
+        },
+        {
+            "id": 12,
+            "block_type": "PAIN",
+            "sentence_text": "没有一个人，真正记住你在说什么。",
+            "duration_estimate": 4.0,
+            "visual_search_queries": [
+                "faces fading memory dark",
+                "audio waveform flatline"
+            ],
+            "visual_effect": {
+                "camera": "Zoom_In_Fast",
+                "filter": "Black_White"
+            },
+            "center_highlight": {
+                "enabled": true,
+                "text": "没人记住",
+                "style": "Red_Glitch",
+                "sfx": "Boom"
+            }
+        },
+        {
+            "id": 13,
+            "block_type": "PAIN",
+            "sentence_text": "不是你不合群。",
+            "duration_estimate": 2.4,
+            "visual_search_queries": [
+                "person standing aside group silhouette",
+                "isolated shadow wall"
+            ],
+            "visual_effect": {
+                "camera": "Static",
+                "filter": "Black_White"
+            },
+            "center_highlight": {
+                "enabled": false,
+                "text": "",
+                "style": "White_Clean",
+                "sfx": "Silence"
+            }
+        },
+        {
+            "id": 14,
+            "block_type": "PAIN",
+            "sentence_text": "是这场社交，从一开始就只有噪音，没有连接。",
+            "duration_estimate": 4.8,
+            "visual_search_queries": [
+                "static noise screen glitch",
+                "broken cable sparks macro"
+            ],
+            "visual_effect": {
+                "camera": "Shake",
+                "filter": "High_Contrast"
+            },
+            "center_highlight": {
+                "enabled": true,
+                "text": "没有连接",
+                "style": "Red_Glitch",
+                "sfx": "Electricity_Buzz"
+            }
+        },
+        {
+            "id": 15,
+            "block_type": "STORY",
+            "sentence_text": "我以前就是这样。",
+            "duration_estimate": 2.4,
+            "visual_search_queries": [
+                "man staring mirror tired eyes dark room",
+                "single desk lamp night cinematic"
+            ],
+            "visual_effect": {
+                "camera": "Static",
+                "filter": "High_Contrast"
+            },
+            "center_highlight": {
+                "enabled": false,
+                "text": "",
+                "style": "White_Clean",
+                "sfx": "Silence"
+            }
+        },
+        {
+            "id": 16,
+            "block_type": "STORY",
+            "sentence_text": "拼命维持热闹，",
+            "duration_estimate": 2.6,
+            "visual_search_queries": [
+                "forced laughter close up sweat",
+                "clown makeup cracking dark cinematic"
+            ],
+            "visual_effect": {
+                "camera": "Zoom_In_Fast",
+                "filter": "High_Contrast"
+            },
+            "center_highlight": {
+                "enabled": true,
+                "text": "维持热闹",
+                "style": "Red_Glitch",
+                "sfx": "Whoosh"
+            }
+        },
+        {
+            "id": 17,
+            "block_type": "STORY",
+            "sentence_text": "主动寒暄、频繁刷存在感，",
+            "duration_estimate": 3.6,
+            "visual_search_queries": [
+                "phone notifications flooding screen",
+                "hand waving repeatedly crowd"
+            ],
+            "visual_effect": {
+                "camera": "Shake",
+                "filter": "High_Contrast"
+            },
+            "center_highlight": {
+                "enabled": false,
+                "text": "",
+                "style": "White_Clean",
+                "sfx": "Ding"
+            }
+        },
+        {
+            "id": 18,
+            "block_type": "PAIN",
+            "sentence_text": "结果关系却始终停留在“认识”，无法进入“信任”。",
+            "duration_estimate": 4.8,
+            "visual_search_queries": [
+                "glass wall separating two people",
+                "locked door between silhouettes"
+            ],
+            "visual_effect": {
+                "camera": "Static",
+                "filter": "Black_White"
+            },
+            "center_highlight": {
+                "enabled": true,
+                "text": "无法信任",
+                "style": "Red_Glitch",
+                "sfx": "Glass_Shatter"
+            }
+        },
+        {
+            "id": 19,
+            "block_type": "CLIMAX",
+            "sentence_text": "后来我才意识到一个被严重误解的事实：",
+            "duration_estimate": 3.8,
+            "visual_search_queries": [
+                "dark room light turning on",
+                "eyes opening extreme close up"
+            ],
+            "visual_effect": {
+                "camera": "Slow_Mo",
+                "filter": "Warm_Light"
+            },
+            "center_highlight": {
+                "enabled": true,
+                "text": "误解",
+                "style": "Gold_Stamp",
+                "sfx": "Whoosh"
+            }
+        },
+        {
+            "id": 20,
+            "block_type": "CLIMAX",
+            "sentence_text": "深度社交，从来不是靠频率，而是靠同频。",
+            "duration_estimate": 4.6,
+            "visual_search_queries": [
+                "two sound waves synchronizing golden",
+                "metronomes syncing slow motion"
+            ],
+            "visual_effect": {
+                "camera": "Slow_Mo",
+                "filter": "Warm_Light"
+            },
+            "center_highlight": {
+                "enabled": true,
+                "text": "同频",
+                "style": "Gold_Stamp",
+                "sfx": "Boom"
+            }
+        },
+        {
+            "id": 21,
+            "block_type": "SOLUTION",
+            "sentence_text": "寒暄解决的是情绪缓冲，",
+            "duration_estimate": 3.2,
+            "visual_search_queries": [
+                "airbag deploying slow motion",
+                "foam padding absorbing impact"
+            ],
+            "visual_effect": {
+                "camera": "Slow_Mo",
+                "filter": "Warm_Light"
+            },
+            "center_highlight": {
+                "enabled": false,
+                "text": "",
+                "style": "White_Clean",
+                "sfx": "Silence"
+            }
+        },
+        {
+            "id": 22,
+            "block_type": "SOLUTION",
+            "sentence_text": "价值共振解决的，才是长期关系。",
+            "duration_estimate": 4.2,
+            "visual_search_queries": [
+                "bridge cables vibrating in sync",
+                "long road perspective sunrise cinematic"
+            ],
+            "visual_effect": {
+                "camera": "Pan_Right",
+                "filter": "Warm_Light"
+            },
+            "center_highlight": {
+                "enabled": true,
+                "text": "长期关系",
+                "style": "Gold_Stamp",
+                "sfx": "Ding"
+            }
+        },
+        {
+            "id": 23,
+            "block_type": "SOLUTION",
+            "sentence_text": "你和一个人能不能走远，",
+            "duration_estimate": 3.0,
+            "visual_search_queries": [
+                "two people walking long road silhouette sunset",
+                "railway tracks extending horizon cinematic"
+            ],
+            "visual_effect": {
+                "camera": "Pan_Right",
+                "filter": "Warm_Light"
+            },
+            "center_highlight": {
+                "enabled": false,
+                "text": "",
+                "style": "White_Clean",
+                "sfx": "Silence"
+            }
+        },
+        {
+            "id": 24,
+            "block_type": "SOLUTION",
+            "sentence_text": "不取决于聊得多不多，",
+            "duration_estimate": 3.2,
+            "visual_search_queries": [
+                "speech bubbles multiplying then fading",
+                "mouth talking fast blur"
+            ],
+            "visual_effect": {
+                "camera": "Shake",
+                "filter": "High_Contrast"
+            },
+            "center_highlight": {
+                "enabled": true,
+                "text": "不取决",
+                "style": "Gold_Stamp",
+                "sfx": "Whoosh"
+            }
+        },
+        {
+            "id": 25,
+            "block_type": "SOLUTION",
+            "sentence_text": "而取决于你们是否站在相似的价值坐标系里。",
+            "duration_estimate": 4.8,
+            "visual_search_queries": [
+                "coordinate grid aligning points golden",
+                "two arrows pointing same direction"
+            ],
+            "visual_effect": {
+                "camera": "Slow_Mo",
+                "filter": "Warm_Light"
+            },
+            "center_highlight": {
+                "enabled": true,
+                "text": "价值坐标",
+                "style": "Gold_Stamp",
+                "sfx": "Boom"
+            }
+        },
+        {
+            "id": 26,
+            "block_type": "SOLUTION",
+            "sentence_text": "这背后有一个核心概念，叫筛选机制。",
+            "duration_estimate": 4.2,
+            "visual_search_queries": [
+                "industrial sorting machine close up",
+                "sieve separating particles macro"
+            ],
+            "visual_effect": {
+                "camera": "Zoom_In_Fast",
+                "filter": "Cyberpunk"
+            },
+            "center_highlight": {
+                "enabled": true,
+                "text": "筛选机制",
+                "style": "Gold_Stamp",
+                "sfx": "Ding"
+            }
+        },
+        {
+            "id": 27,
+            "block_type": "PAIN",
+            "sentence_text": "大多数人社交，是广撒网，",
+            "duration_estimate": 3.4,
+            "visual_search_queries": [
+                "fishing net thrown wide ocean",
+                "spam messages flooding inbox"
+            ],
+            "visual_effect": {
+                "camera": "Pan_Right",
+                "filter": "Black_White"
+            },
+            "center_highlight": {
+                "enabled": true,
+                "text": "广撒网",
+                "style": "Red_Glitch",
+                "sfx": "Whoosh"
+            }
+        },
+        {
+            "id": 28,
+            "block_type": "PAIN",
+            "sentence_text": "结果把自己的认知带宽，",
+            "duration_estimate": 3.0,
+            "visual_search_queries": [
+                "brain overheating x-ray style",
+                "cpu overload warning screen"
+            ],
+            "visual_effect": {
+                "camera": "Shake",
+                "filter": "Red_Tint"
+            },
+            "center_highlight": {
+                "enabled": true,
+                "text": "带宽耗尽",
+                "style": "Red_Glitch",
+                "sfx": "Electricity_Buzz"
+            }
+        },
+        {
+            "id": 29,
+            "block_type": "PAIN",
+            "sentence_text": "浪费在大量低密度关系上。",
+            "duration_estimate": 3.8,
+            "visual_search_queries": [
+                "leaking fuel tank slow motion",
+                "sand slipping through fingers macro"
+            ],
+            "visual_effect": {
+                "camera": "Slow_Mo",
+                "filter": "Black_White"
+            },
+            "center_highlight": {
+                "enabled": true,
+                "text": "低密度",
+                "style": "Red_Glitch",
+                "sfx": "Glass_Shatter"
+            }
+        },
+        {
+            "id": 30,
+            "block_type": "SOLUTION",
+            "sentence_text": "而真正厉害的人，",
+            "duration_estimate": 2.6,
+            "visual_search_queries": [
+                "single figure standing still crowd blur",
+                "sharp focus person crowd motion blur"
+            ],
+            "visual_effect": {
+                "camera": "Static",
+                "filter": "High_Contrast"
+            },
+            "center_highlight": {
+                "enabled": false,
+                "text": "",
+                "style": "White_Clean",
+                "sfx": "Silence"
+            }
+        },
+        {
+            "id": 31,
+            "block_type": "SOLUTION",
+            "sentence_text": "是在社交中进行无声筛选——",
+            "duration_estimate": 4.0,
+            "visual_search_queries": [
+                "metal detector scanning people line",
+                "x-ray scanner human silhouettes"
+            ],
+            "visual_effect": {
+                "camera": "Pan_Right",
+                "filter": "Cyberpunk"
+            },
+            "center_highlight": {
+                "enabled": true,
+                "text": "无声筛选",
+                "style": "Gold_Stamp",
+                "sfx": "Electricity_Buzz"
+            }
+        },
+        {
+            "id": 32,
+            "block_type": "SOLUTION",
+            "sentence_text": "谁能理解我的判断逻辑？",
+            "duration_estimate": 3.2,
+            "visual_search_queries": [
+                "two brains connected glowing synapse",
+                "logic diagram overlay face"
+            ],
+            "visual_effect": {
+                "camera": "Zoom_In_Fast",
+                "filter": "Warm_Light"
+            },
+            "center_highlight": {
+                "enabled": false,
+                "text": "",
+                "style": "White_Clean",
+                "sfx": "Silence"
+            }
+        },
+        {
+            "id": 33,
+            "block_type": "SOLUTION",
+            "sentence_text": "谁对同样的长期问题有耐心？",
+            "duration_estimate": 3.6,
+            "visual_search_queries": [
+                "hourglass slow drip macro",
+                "long term construction time lapse"
+            ],
+            "visual_effect": {
+                "camera": "Slow_Mo",
+                "filter": "Warm_Light"
+            },
+            "center_highlight": {
+                "enabled": false,
+                "text": "",
+                "style": "White_Clean",
+                "sfx": "Silence"
+            }
+        },
+        {
+            "id": 34,
+            "block_type": "SOLUTION",
+            "sentence_text": "谁的价值观，能和我形成共振？",
+            "duration_estimate": 4.0,
+            "visual_search_queries": [
+                "tuning forks vibrating together macro",
+                "heartbeats syncing waveform"
+            ],
+            "visual_effect": {
+                "camera": "Slow_Mo",
+                "filter": "Warm_Light"
+            },
+            "center_highlight": {
+                "enabled": true,
+                "text": "共振",
+                "style": "Gold_Stamp",
+                "sfx": "Boom"
+            }
+        },
+        {
+            "id": 35,
+            "block_type": "CLIMAX",
+            "sentence_text": "一旦共振出现，",
+            "duration_estimate": 2.6,
+            "visual_search_queries": [
+                "two lights merging slow motion",
+                "magnets snapping together macro"
+            ],
+            "visual_effect": {
+                "camera": "Slow_Mo",
+                "filter": "Warm_Light"
+            },
+            "center_highlight": {
+                "enabled": true,
+                "text": "出现",
+                "style": "Gold_Stamp",
+                "sfx": "Ding"
+            }
+        },
+        {
+            "id": 36,
+            "block_type": "CLIMAX",
+            "sentence_text": "关系几乎是自动深化的。",
+            "duration_estimate": 3.6,
+            "visual_search_queries": [
+                "tree roots intertwining underground",
+                "gears locking perfectly macro"
+            ],
+            "visual_effect": {
+                "camera": "Slow_Mo",
+                "filter": "Warm_Light"
+            },
+            "center_highlight": {
+                "enabled": true,
+                "text": "自动深化",
+                "style": "Gold_Stamp",
+                "sfx": "Boom"
+            }
+        }
+    ]
+}
