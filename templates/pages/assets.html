@@ -1,0 +1,316 @@
+<style>
+        /* 资源库布局 */
+        .res-split-pane { display: flex; gap: 20px; height: 600px; }
+        .res-left { flex: 1; border-right: 1px solid #ddd; padding-right: 15px; overflow-y: auto; }
+        .res-right { flex: 1; padding-left: 5px; display: flex; flex-direction: column; }
+        .res-results { flex: 1; overflow-y: auto; border: 1px dashed #ccc; border-radius: 6px; padding: 10px; background: #f9f9f9; }
+        
+        /* 拖拽上传区域 */
+        .upload-area { border: 2px dashed #0d6efd; border-radius: 8px; padding: 30px; text-align: center; background: #f8f9fa; cursor: pointer; transition: all 0.2s; }
+        .upload-area:hover { background: #e9ecef; border-color: #0b5ed7; }
+    </style>
+
+<div id="page-res-video" class="page-view">
+    <div class="res-split-pane">
+        <div class="res-left">
+            <h6 class="sticky-top py-2 border-bottom">📂 本地已下载</h6>
+            <input type="text" id="resLocalVideoSearch" class="form-control mb-2 form-control-sm" placeholder="筛选本地..." oninput="filterResourceVideos()">
+            <div id="resLocalGrid" class="row g-2">
+                {% for v in videos %}
+                <div class="col-6 res-item" data-name="{{v}}">
+                    <div class="card h-100">
+                        <video src="/static/video/{{v}}" class="card-img-top" style="object-fit:cover" controls></video>
+                        <div class="card-body p-1"><div class="small text-truncate" title="{{v}}">{{v}}</div></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="res-right">
+            <h6 class="sticky-top py-2 border-bottom text-primary">🌐 在线搜索 (Pexels)</h6>
+            <div class="input-group mb-2">
+                <input type="text" id="resOnlineVideoInput" class="form-control form-control-sm" placeholder="英文关键词...">
+                <button class="btn btn-primary btn-sm" onclick="searchResOnlineVideo(this)">🔍 搜索</button>
+            </div>
+            <div id="resOnlineGrid" class="res-results">
+                <div class="text-center text-muted small mt-5">输入关键词搜索预览，点击下载入库</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="page-res-sfx" class="page-view">
+    <div class="res-split-pane">
+        <div class="res-left">
+            <h6 class="sticky-top py-2 border-bottom">📂 本地音效</h6>
+            <input type="text" id="resLocalSfxSearch" class="form-control mb-2 form-control-sm" placeholder="筛选..." oninput="filterResourceSfx()">
+            <div class="list-group" id="resSfxList">
+                {% for s in sfx_list %}
+                <div class="list-group-item p-2 res-sfx-item" data-name="{{s}}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2 overflow-hidden" style="max-width: 80%;">
+                            <span class="badge bg-secondary rounded-pill" style="font-size:10px">MP3</span>
+                            <span class="small text-truncate" title="{{s}}">{{s}}</span>
+                        </div>
+                        <button class="btn btn-xs btn-outline-primary rounded-circle" onclick="playSfx('{{s}}')">▶️</button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="res-right">
+            <h6 class="sticky-top py-2 border-bottom text-success">🌐 在线搜索 (MyInstants)</h6>
+            <div class="input-group mb-2">
+                <input type="text" id="resOnlineSfxInput" class="form-control form-control-sm" placeholder="关键词 (如: boom, laugh)...">
+                <button class="btn btn-success btn-sm" onclick="searchResOnlineSfx(this)">🔍 搜索</button>
+            </div>
+            <div id="resSfxOnlineResults" class="res-results">
+                <div class="text-center text-muted small mt-5">无需 Key，直接搜索并下载</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="page-res-bgm" class="page-view">
+    <div class="res-split-pane">
+        <div class="res-left">
+            <h6 class="sticky-top py-2 border-bottom">🎵 本地音乐库</h6>
+            <div class="list-group" id="resMusicList">
+                {% for m in music %}
+                <div class="list-group-item p-2 d-flex justify-content-between align-items-center" id="music-item-{{loop.index}}">
+                    <span class="small">🎵 {{m}}</span>
+                    <div>
+                        <button class="btn btn-xs btn-outline-primary me-1" onclick="playMusic('{{m}}')">▶️</button>
+                        <button class="btn btn-xs btn-outline-danger" onclick="deleteMusic('{{m}}', this)">🗑️</button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="res-right">
+            <h6 class="sticky-top py-2 border-bottom text-info">⬆️ 上传音乐</h6>
+            <div class="upload-area mt-3" onclick="document.getElementById('musicFileInput').click()">
+                <h3 class="text-muted">📂</h3>
+                <p class="mb-0 text-muted">点击选择或拖拽 MP3/WAV 文件</p>
+                <input type="file" id="musicFileInput" accept=".mp3,.wav" style="display:none" onchange="uploadMusic(this)">
+            </div>
+            <div id="uploadStatus" class="mt-3 text-center small text-muted"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- 视频素材搜索功能 --- 
+    
+    // 本地视频搜索
+    function filterResourceVideos() {
+        const searchInput = document.getElementById('resLocalVideoSearch');
+        if (!searchInput) return;
+        
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const items = document.querySelectorAll('.res-item');
+        
+        items.forEach(item => {
+            const name = item.getAttribute('data-name') || '';
+            if (name.toLowerCase().includes(searchTerm)) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+    
+    // 在线视频搜索
+    async function searchResOnlineVideo(btn) {
+        const input = document.getElementById('resOnlineVideoInput');
+        if (!input) {
+            alert('搜索输入框不存在');
+            return;
+        }
+        
+        const query = input.value.trim();
+        if (!query) {
+            alert('请输入搜索关键词');
+            return;
+        }
+        
+        const resultsContainer = document.getElementById('resOnlineGrid');
+        if (!resultsContainer) return;
+        
+        // 显示加载状态
+        btn.disabled = true;
+        const oldText = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 搜索中...';
+        resultsContainer.innerHTML = '<div class="text-center text-muted">搜索中...</div>';
+        
+        try {
+            // 这里应该调用实际的API，现在使用模拟数据
+            // const res = await fetch(`/api/search-video?query=${encodeURIComponent(query)}`);
+            // const data = await res.json();
+            
+            // 模拟数据
+            const mockData = {
+                videos: [
+                    { id: 1, url: 'https://example.com/video1.mp4', title: 'Sample Video 1', duration: '00:30' },
+                    { id: 2, url: 'https://example.com/video2.mp4', title: 'Sample Video 2', duration: '01:00' }
+                ]
+            };
+            
+            // 渲染结果
+            if (mockData.videos && mockData.videos.length > 0) {
+                resultsContainer.innerHTML = '';
+                mockData.videos.forEach(video => {
+                    const card = document.createElement('div');
+                    card.className = 'col-6 res-item';
+                    card.innerHTML = `
+                        <div class="card h-100">
+                            <video src="${video.url}" class="card-img-top" style="object-fit:cover" controls></video>
+                            <div class="card-body p-1">
+                                <div class="small text-truncate" title="${video.title}">${video.title}</div>
+                                <div class="small text-muted">${video.duration}</div>
+                            </div>
+                        </div>
+                    `;
+                    resultsContainer.appendChild(card);
+                });
+            } else {
+                resultsContainer.innerHTML = '<div class="text-center text-muted">无搜索结果</div>';
+            }
+        } catch (error) {
+            console.error('搜索错误:', error);
+            resultsContainer.innerHTML = '<div class="text-center text-danger">搜索失败，请重试</div>';
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = oldText;
+        }
+    }
+    
+    // 音效搜索相关函数
+    function filterResourceSfx() {
+        const searchInput = document.getElementById('resLocalSfxSearch');
+        if (!searchInput) return;
+        
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const items = document.querySelectorAll('.res-sfx-item');
+        
+        items.forEach(item => {
+            const name = item.getAttribute('data-name') || '';
+            if (name.toLowerCase().includes(searchTerm)) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+    
+    async function searchResOnlineSfx(btn) {
+        const input = document.getElementById('resOnlineSfxInput');
+        if (!input) {
+            alert('搜索输入框不存在');
+            return;
+        }
+        
+        const query = input.value.trim();
+        if (!query) {
+            alert('请输入搜索关键词');
+            return;
+        }
+        
+        const resultsContainer = document.getElementById('resSfxOnlineResults');
+        if (!resultsContainer) return;
+        
+        // 显示加载状态
+        btn.disabled = true;
+        const oldText = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 搜索中...';
+        resultsContainer.innerHTML = '<div class="text-center text-muted">搜索中...</div>';
+        
+        try {
+            // 模拟数据
+            const mockData = {
+                sfx: [
+                    { id: 1, name: 'boom.mp3', url: 'https://example.com/boom.mp3' },
+                    { id: 2, name: 'ding.mp3', url: 'https://example.com/ding.mp3' }
+                ]
+            };
+            
+            // 渲染结果
+            if (mockData.sfx && mockData.sfx.length > 0) {
+                resultsContainer.innerHTML = '';
+                mockData.sfx.forEach(sfx => {
+                    const item = document.createElement('div');
+                    item.className = 'list-group-item p-2';
+                    item.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center gap-2 overflow-hidden" style="max-width: 80%;">
+                                <span class="badge bg-secondary rounded-pill" style="font-size:10px">MP3</span>
+                                <span class="small text-truncate" title="${sfx.name}">${sfx.name}</span>
+                            </div>
+                            <button class="btn btn-xs btn-outline-primary rounded-circle" onclick="playSfx('${sfx.name}')">▶️</button>
+                        </div>
+                    `;
+                    resultsContainer.appendChild(item);
+                });
+            } else {
+                resultsContainer.innerHTML = '<div class="text-center text-muted">无搜索结果</div>';
+            }
+        } catch (error) {
+            console.error('搜索错误:', error);
+            resultsContainer.innerHTML = '<div class="text-center text-danger">搜索失败，请重试</div>';
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = oldText;
+        }
+    }
+    
+    // 播放音效
+    function playSfx(filename) {
+        if (!filename) return;
+        // 这里应该实现实际的音效播放逻辑
+        console.log('播放音效:', filename);
+    }
+    
+    // 播放音乐
+    function playMusic(filename) {
+        if (!filename) return;
+        // 这里应该实现实际的音乐播放逻辑
+        console.log('播放音乐:', filename);
+    }
+    
+    // 删除音乐
+    function deleteMusic(filename, btn) {
+        if (!filename) return;
+        if (confirm('确定要删除这个音乐文件吗？')) {
+            // 这里应该实现实际的音乐删除逻辑
+            console.log('删除音乐:', filename);
+            // 移除DOM元素
+            const item = btn.closest('.list-group-item');
+            if (item) {
+                item.remove();
+            }
+        }
+    }
+    
+    // 上传音乐
+    function uploadMusic(input) {
+        const file = input.files[0];
+        if (!file) return;
+        
+        const status = document.getElementById('uploadStatus');
+        if (status) {
+            status.textContent = '上传中...';
+        }
+        
+        // 这里应该实现实际的文件上传逻辑
+        setTimeout(() => {
+            if (status) {
+                status.textContent = '上传完成';
+                setTimeout(() => {
+                    status.textContent = '';
+                }, 2000);
+            }
+            // 重置input
+            input.value = '';
+        }, 1000);
+    }
+</script>

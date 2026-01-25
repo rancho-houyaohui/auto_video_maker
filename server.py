@@ -270,7 +270,8 @@ async def batch_generate():
                 
                 # 1. 分析文案 (重置一下 LLM 配置以防万一)
                 engine.set_llm_config(config.LLM_PROVIDER, config.API_KEY, config.API_BASE_URL, config.API_MODEL_NAME if config.LLM_PROVIDER == 'api' else config.OLLAMA_MODEL)
-                scenes = engine.analyze_script(p['script'], search_source=req.search_source)
+                # 使用默认的搜索来源 'vector'，与前端默认选项保持一致
+                scenes = engine.analyze_script(p['script'], search_source='vector')
                 
                 # --- 2. 确定文件夹名称 (核心修改) ---
                 folder_date = datetime.now().strftime("%Y%m%d") # 默认今天

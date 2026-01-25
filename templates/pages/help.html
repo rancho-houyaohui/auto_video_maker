@@ -1,0 +1,142 @@
+<div id="page-help" class="page-view">
+    <div style="max-width: 900px; margin: 0 auto;">
+        
+        <!-- 标题 -->
+        <div class="d-flex align-items-center gap-3 mb-5">
+            <i class="fa-solid fa-book-open fa-3x text-primary"></i>
+            <div>
+                <h2 class="text-white m-0 fw-bold">用户使用手册</h2>
+                <p class="text-muted m-0">AI Director OS v1.0</p>
+            </div>
+        </div>
+
+        <!-- 卡片容器 -->
+        <div class="row g-4">
+            
+            <!-- 1. 界面布局 -->
+            <div class="col-12">
+                <div class="v-card border-l-primary">
+                    <h5 class="text-white mb-3"><i class="fa-solid fa-columns me-2 text-accent"></i>界面布局</h5>
+                    <p class="text-muted">系统采用高效的三栏式设计：</p>
+                    <ul class="text-muted small" style="line-height: 1.8;">
+                        <li><strong class="text-white">左侧导航：</strong> 功能模块切换 (分镜、资源、项目、封面)。</li>
+                        <li><strong class="text-white">中间工作台：</strong> 核心操作区，用于编辑内容和浏览资源。</li>
+                        <li><strong class="text-white">右侧控制台：</strong> 全局参数配置区 (配音、BGM、字幕样式)，常驻显示，随时调整。</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 2. 分镜拆解 -->
+            <div class="col-md-6">
+                <div class="v-card h-100">
+                    <h5 class="text-white mb-3"><i class="fa-solid fa-wand-magic-sparkles me-2 text-primary"></i>分镜拆解</h5>
+                    <p class="text-muted small">创作的核心流程：</p>
+                    <ol class="text-muted small ps-3">
+                        <li class="mb-2">输入文案，点击 <strong>AI Generate</strong> 自动拆分画面。</li>
+                        <li class="mb-2">点击缩略图可 <strong>更换素材</strong> (支持 Pexels 在线搜)。</li>
+                        <li class="mb-2">勾选卡片上的开关开启 <strong>霸屏模式</strong> (红字居中)。</li>
+                        <li>调整 <strong>Pause (停顿)</strong> 控制节奏。</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- 3. 全局配置 -->
+            <div class="col-md-6">
+                <div class="v-card h-100">
+                    <h5 class="text-white mb-3"><i class="fa-solid fa-sliders me-2 text-primary"></i>全局配置</h5>
+                    <p class="text-muted small">位于右侧面板，控制视频基调：</p>
+                    <ul class="text-muted small ps-3">
+                        <li class="mb-2"><strong>Voice Actor:</strong> 切换 AI 配音员。</li>
+                        <li class="mb-2"><strong>BGM:</strong> 设置背景音乐及音量。</li>
+                        <li class="mb-2"><strong>Subtitle Style:</strong> 实时预览并调整字幕颜色/字号。</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 4. 资源库 -->
+            <div class="col-md-6">
+                <div class="v-card h-100">
+                    <h5 class="text-white mb-3"><i class="fa-solid fa-box-open me-2 text-primary"></i>资源库</h5>
+                    <p class="text-muted small">
+                        支持 <strong>瀑布流</strong> 浏览。集成 Pexels (视频) 和 MyInstants (音效) API。
+                        输入英文关键词即可在线搜索并下载素材。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 5. 渲染导出 -->
+            <div class="col-md-6">
+                <div class="v-card h-100">
+                    <h5 class="text-white mb-3"><i class="fa-solid fa-rocket me-2 text-primary"></i>渲染导出</h5>
+                    <p class="text-muted small">
+                        完成编辑后，点击右侧底部的 <strong>START RENDER</strong>。
+                        系统将通过 WebSocket 实时显示渲染进度，完成后即可下载 MP4 文件。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 6. 项目管理 -->
+            <div class="col-md-6">
+                <div class="v-card h-100">
+                    <h5 class="text-white mb-3">
+                        <i class="fa-solid fa-folder-open me-2 text-primary"></i>项目管理 (Project Hub)
+                    </h5>
+                    <p class="text-muted small">
+                        您的全能创作档案中心，支持非线性编辑与状态追踪。
+                    </p>
+                    <ul class="text-muted small ps-3" style="line-height: 1.6;">
+                        <li class="mb-2">
+                            <strong class="text-white">状态追踪：</strong> 
+                            清晰区分 <span class="badge bg-secondary" style="font-size:0.7em">Draft</span> (草稿) 与 <span class="badge bg-success" style="font-size:0.7em">Generated</span> (已完成)。
+                        </li>
+                        <li class="mb-2">
+                            <strong class="text-white">自动存档：</strong> 
+                            分镜页面的每一次修改都会自动同步到当前项目，无需手动保存。
+                        </li>
+                        <li class="mb-2">
+                            <strong class="text-white">批量生产：</strong> 
+                            点击 <strong>"新建项目"</strong>，创建一个新的项目。
+                        </li>
+                        <li class="mb-2">
+                            <strong class="text-white">批量生产：</strong> 
+                            点击 <strong>"自动生成 (All Drafts)"</strong>，系统将自动在后台队列化渲染所有草稿状态的项目，适合批量做号。
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 7. 封面工坊 -->
+            <div class="col-md-6">
+                <div class="v-card h-100">
+                    <h5 class="text-white mb-3">
+                        <i class="fa-solid fa-image me-2 text-primary"></i>封面工坊 (Cover Studio)
+                    </h5>
+                    <p class="text-muted small">
+                        专为短视频设计的高点击率封面生成器，采用 Canvas 实时渲染。
+                    </p>
+                    <ul class="text-muted small ps-3" style="line-height: 1.6;">
+                        <li class="mb-2">
+                            <strong class="text-white">所见即所得：</strong> 
+                            左侧/中间为画布，<strong class="text-accent">右侧 Inspector 面板</strong> 调整文字内容、颜色、字重和描边。
+                        </li>
+                        <li class="mb-2">
+                            <strong class="text-white">磁吸排版：</strong> 
+                            在画布上拖拽文字时，靠近中心线会自动吸附，轻松实现专业居中对齐。
+                        </li>
+                        <li class="mb-2">
+                            <strong class="text-white">一键应用：</strong> 
+                            点击 <strong>"Save Cover"</strong>，封面将直接关联至当前项目，无需下载后再上传。
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+        
+        <!-- 底部提示 -->
+        <div class="mt-5 text-center text-muted small">
+            <p>遇到问题？请检查控制台日志或联系开发者。</p>
+        </div>
+
+    </div>
+</div>

@@ -1,0 +1,176 @@
+<style>
+    .flex-line {
+        display: flex;
+        align-items: center;
+    }
+</style>
+<div id="comp-config" class="inspector-view active">
+    <div class="section-title">GLOBAL SETTINGS</div>
+    
+    <div class="v-card">
+        <label class="small text-muted mb-2 d-block">配音角色</label>
+        <select class="v-select mb-3" id="globalVoice">
+            {% for vid, vname in voice_options %}
+            <option value="{{vid}}">{{vname}}</option>
+            {% endfor %}
+        </select>
+        <div class="row g-2 mb-2">
+            <div class="col-6">
+                <label class="small text-muted mb-1 d-block">TTS语速</label>
+                <input type="number" class="v-input" id="ttsRate" value="40" step="5">
+            </div>
+            <div class="col-6">
+                <label class="small text-muted mb-1 d-block">句间停顿(秒)</label>
+                <input type="number" class="v-input" id="audioPadding" value="0" step="0.1">
+            </div>
+        </div>
+
+        <label class="small text-muted mb-2 d-block">BGM音乐</label>
+        <select class="v-select mb-2" id="bgmSelect">
+            <option value="">None</option>
+            {% for m in music %}<option value="{{m}}">{{m}}</option>{% endfor %}
+        </select>
+        <div class="row g-2">
+            <div class="col-12">
+                <label class="small text-muted mb-1 d-block">BGM音量</label>
+                <input type="number" class="v-input" id="bgmVol" value="0.1" step="0.1">
+            </div>
+        </div>
+    </div>
+     
+    <div class="section-title">Pexels Key设置</div>
+    <div class="v-card" id="resourceSettings">
+        <div class="d-flex align-items-center gap-2" style="height: 40px; margin-bottom: 20px;">
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="search_source" id="vectorSource" value="vector" checked>
+                <label class="form-check-label" for="vectorSource">向量库</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="search_source" id="pexelsSource" value="pexels">
+                <label class="form-check-label" for="pexelsSource">Pexels</label>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-title">搜索资源来源</div>
+    <div class="v-card" id="resourceSettings">
+        <input type="text" class="v-input" placeholder="Pexels API Key" id="pexelsKey">
+    </div>
+
+    <div class="section-title">字幕设置</div>
+    <div class="v-card">
+        <label class="small text-muted mb-3 d-block">普通字幕</label>
+        <div class="mb-3">
+            <div class="row g-2 mb-2">
+                <div class="col-2 flex-line">
+                    <label class="small text-muted mb-1 d-block">字号</label>
+                </div>
+                <div class="col-10">
+                    <input type="number" class="v-input" value="100" placeholder="Size" id="normSize">
+                </div>
+            </div>
+            <div class="row g-2">
+                <div class="col-6">
+                    <label class="small text-muted mb-1 d-block">字体颜色</label>
+                    <input type="color" class="v-input p-0" style="height:38px" value="#ffffff" id="normColor">
+                </div>
+                <div class="col-6">
+                    <label class="small text-muted mb-1 d-block">描边颜色</label>
+                    <input type="color" class="v-input p-0" style="height:38px" value="#000000" id="normOutline">
+                </div>
+            </div>
+        </div>
+        <label class="small text-muted mb-3 d-block">强调字幕</label>
+        <div class="mb-3">
+            <div class="row g-2 mb-2">
+                <div class="col-2 flex-line">
+                    <label class="small text-muted mb-1 d-block">字号</label>
+                </div>
+                <div class="col-10">
+                    <input type="number" class="v-input" value="180" placeholder="Emphasis Size" id="empSize">
+                </div>
+            </div>
+            <div class="row g-2">
+                <div class="col-6">
+                    <label class="small text-muted mb-1 d-block">字体颜色</label>
+                    <input type="color" class="v-input p-0" style="height:38px" value="#FF0000" id="empColor">
+                </div>
+                <div class="col-6">
+                    <label class="small text-muted mb-1 d-block">描边颜色</label>
+                    <input type="color" class="v-input p-0" style="height:38px" value="#FFFFFF" id="empOutline">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-title">AI模型设置</div>
+    <div class="v-card">
+        <select class="v-select mb-2" id="llmProvider" onchange="toggleLlmSettings()">
+            <option value="ollama">Ollama (Local)</option>
+            <option value="api">API (Cloud)</option>
+        </select>
+        
+        <!-- Ollama 设置 -->
+        <div id="ollamaSettings">
+            <input class="v-input" placeholder="Local Model Name (e.g. qwen2.5:7b)" value="qwen2.5:7b" id="ollamaModel">
+        </div>
+        
+        <!-- API 设置 (默认隐藏) -->
+        <div id="apiSettings" style="display:none;">
+            <input class="v-input mt-2" placeholder="API Base URL (e.g. https://api.deepseek.com)" id="apiBaseUrl">
+            <input class="v-input mt-2" placeholder="API Key (e.g. sk-...)" id="apiKey" type="password">
+            <input class="v-input mt-2" placeholder="API Model (e.g. deepseek-chat)" id="apiModel">
+        </div>
+    </div>
+    
+    <!-- <div class="mt-4">
+            <button class="v-btn py-3 fs-6">START RENDER <i class="fa-solid fa-rocket ms-2"></i></button>
+    </div> -->
+</div>
+
+<script>
+    // 控制资源设置的显示/隐藏
+    function updateResourceSettingsVisibility() {
+        const resourceSettings = document.getElementById('resourceSettings');
+        const currentPage = document.querySelector('.page-view.active');
+        const currentPageId = currentPage ? currentPage.id : '';
+        
+        // 仅在分镜拆解和项目管理页面显示资源设置
+        if (currentPageId === 'page-scenes' || currentPageId === 'page-projects') {
+            resourceSettings.style.display = 'block';
+        } else {
+            resourceSettings.style.display = 'none';
+        }
+    }
+    
+    // 切换LLM设置面板
+    function toggleLlmSettings() {
+        const provider = document.getElementById('llmProvider').value;
+        const ollamaSettings = document.getElementById('ollamaSettings');
+        const apiSettings = document.getElementById('apiSettings');
+        
+        if (provider === 'ollama') {
+            ollamaSettings.style.display = 'block';
+            apiSettings.style.display = 'none';
+        } else {
+            ollamaSettings.style.display = 'none';
+            apiSettings.style.display = 'block';
+        }
+    }
+    
+    // 初始化时检查
+    document.addEventListener('DOMContentLoaded', function() {
+        updateResourceSettingsVisibility();
+        // 初始化LLM设置面板
+        toggleLlmSettings();
+        
+        // 监听页面切换事件
+        const navItems = document.querySelectorAll('.nav-item, .sub-item');
+        navItems.forEach(item => {
+            item.addEventListener('click', function() {
+                // 延迟执行，确保页面切换完成
+                setTimeout(updateResourceSettingsVisibility, 100);
+            });
+        });
+    });
+</script>

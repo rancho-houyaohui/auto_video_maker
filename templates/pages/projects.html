@@ -1,0 +1,591 @@
+<style>
+    .form-label{
+        color: #333;
+    }
+</style>
+<div id="page-projects" class="page-view">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="m-0 text-white fw-light">项目管理</h4>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-warning btn-sm" onclick="batchAutoGenerate()">⚡ 自动生成 (All Drafts)</button>
+            <button class="btn btn-primary btn-sm" onclick="openCreateModal()">+ 新建项目</button>
+        </div>
+    </div>
+
+    <div class="v-card">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 100px;">封面</th>
+                    <th style="width: 15%">文案标题</th>
+                    <th>Tags</th>
+                    <th style="width: 25%">文案摘要</th>
+                    <th>状态</th>
+                    <th>成片</th>
+                    <th>发布时间</th>
+                    <th class="text-end">操作</th>
+                </tr>
+            </thead>
+            <tbody id="projectsTableBody">
+                <!-- 动态生成 -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 1. 新建/编辑 项目 Modal -->
+<div class="modal fade" id="projectModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">新建项目</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="pId">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">封面主标</label>
+                        <input type="text" id="pTitle" class="form-control" placeholder="用于封面大字">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">封面副标</label>
+                        <input type="text" id="pSubTitle" class="form-control" placeholder="用于封面小字">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">文案标题</label>
+                    <input type="text" id="cTitle" class="form-control" placeholder="输入视频标题">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">标签 (Tags)</label>
+                    <input type="text" id="pTags" class="form-control" placeholder="#认知 #思维 #成长">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">文案脚本</label>
+                    <textarea id="pScript" class="form-control" rows="5" placeholder="输入完整文案，用于生成视频..."></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">计划发布时间</label>
+                    <input type="datetime-local" id="pTime" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button class="btn btn-primary" onclick="saveProject()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 2. 封面制作 Canvas Modal (集成版) -->
+<div class="modal fade" id="coverModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-fullscreen-lg-down"> <!-- 响应式全屏 -->
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h5 class="modal-title fs-6">🎨 封面工坊 - <span id="cvProjectTitle">未命名</span></h5>
+                <div>
+                    <button class="btn btn-sm btn-outline-secondary me-2" data-bs-dismiss="modal">关闭</button>
+                    <button class="btn btn-sm btn-primary" onclick="saveCoverCanvas()">💾 保存并应用</button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <!-- 左侧控制 -->
+                <div class="cv-sidebar">
+                    <div class="cv-section-title">🖼️ 底图设置</div>
+                    <div class="cv-form-group">
+                        <label class="cv-label">上传背景图</label>
+                        <input type="file" id="cvBgInput" class="form-control form-control-sm" accept="image/*">
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary w-100 mb-3" onclick="loadRandomBg()">🎲 随机演示图</button>
+
+                    <div class="cv-section-title">🔥 主标题</div>
+                    <div class="cv-form-group">
+                        <textarea id="cvMainText" class="cv-input" rows="2"></textarea>
+                    </div>
+                    <div class="cv-row mb-2">
+                        <div class="cv-col"><input type="number" id="cvMainSize" class="cv-input" value="175"></div>
+                        <div class="cv-col"><input type="color" id="cvMainColor" class="form-control form-control-color w-100" value="#FFFFFF"></div>
+                    </div>
+
+                    <div class="cv-section-title">✨ 副标题</div>
+                    <div class="cv-form-group">
+                        <textarea id="cvSubText" class="cv-input" rows="2"></textarea>
+                    </div>
+                    <div class="cv-row">
+                        <div class="cv-col"><input type="number" id="cvSubSize" class="cv-input" value="70"></div>
+                        <div class="cv-col"><input type="color" id="cvSubColor" class="form-control form-control-color w-100" value="#FFFFFF"></div>
+                    </div>
+                </div>
+                
+                <!-- 右侧画布 -->
+                <div class="cv-workspace">
+                    <canvas id="editorCanvas" class="cv-canvas-shadow"></canvas>
+                    <div class="text-muted mt-2 small">💡 提示：拖动文字可移动，靠近中心会自动吸附</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Global Vars --- 
+    let currentEditingProjectId = null;
+    let projectsData = [];
+    let modalProject = null;
+    let modalCover = null;
+    
+    // 初始化模态框
+    function initModals() {
+        const projectModalEl = document.getElementById('projectModal');
+        const coverModalEl = document.getElementById('coverModal');
+        
+        if (projectModalEl) {
+            modalProject = new bootstrap.Modal(projectModalEl);
+        }
+        
+        if (coverModalEl) {
+            modalCover = new bootstrap.Modal(coverModalEl);
+        }
+    }
+
+    // --- 页面加载 --- 
+    document.addEventListener('DOMContentLoaded', () => {
+        initModals();
+        loadProjects();
+        initCanvasLogic(); // 初始化Canvas事件监听
+    });
+
+    // --- API & 数据逻辑 ---
+    async function loadProjects() {
+        const res = await fetch('/api/projects');
+        const d = await res.json();
+        projectsData = d.data;
+        renderTable(projectsData);
+    }
+
+    function renderTable(list) {
+        const tbody = document.getElementById('projectsTableBody');
+        tbody.innerHTML = '';
+        
+        list.forEach(p => {
+            // 状态逻辑
+            let statusBadge = `<span class="badge status-draft">草稿</span>`;
+            let canPublish = false;
+            let isPublished = false;
+
+            if (p.status === 'generated') {
+                statusBadge = `<span class="badge status-generated">已生成</span>`;
+                canPublish = true;
+            } else if (p.status === 'published') {
+                statusBadge = `<span class="badge status-published">已发布</span>`;
+                isPublished = true;
+            }
+            
+            // 封面逻辑
+            const coverSrc = p.cover_path || "https://placehold.co/192x108?text=Click+to+Edit";
+            const videoLink = p.video_path ? `<a href="${p.video_path}" target="_blank" class="btn btn-sm btn-link">查看</a>` : '-';
+            
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>
+                    <div class="cover-preview-container" onclick="openCoverEditor('${p.id}')" title="点击编辑封面">
+                        <img src="${coverSrc}" class="cover-preview">
+                        <div class="cover-edit-hint">点击编辑</div>
+                    </div>
+                </td>
+                <td>
+                    <div class="fw-bold">${p.title || '无标题'}</div>
+                    <div class="small text-muted">${p.sub_title || ''}</div>
+                </td>
+                <td>${p.tags ? `<span class="badge bg-light text-dark border">${p.tags}</span>` : '-'}</td>
+                <td class="text-truncate" style="max-width: 200px;">${p.script || ''}</td>
+                <td>${statusBadge}</td>
+                <td>${videoLink}</td>
+                <td>${p.publish_time ? p.publish_time.replace('T', ' ') : '-'}</td>
+                <td class="text-end">
+                    ${!isPublished ? `
+                        <button class="btn btn-sm btn-outline-primary action-btn" onclick="goToEditor('${p.id}')">✂️ 制作/分镜</button>
+                        <button class="btn btn-sm btn-outline-secondary action-btn" onclick="editProject('${p.id}')">✏️</button>
+                    ` : ''}
+                    
+                    ${canPublish ? `
+                        <button class="btn btn-sm btn-success action-btn" onclick="publishProject('${p.id}')">📤 发布</button>
+                    ` : ''}
+                    
+                    <button class="btn btn-sm btn-outline-danger action-btn" onclick="deleteProject('${p.id}')"><i class="fas fa-trash"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+    
+    // 核心跳转逻辑：带ID跳转到 index.html
+    function goToEditor(pid) {
+        window.location.href = `/?project_id=${pid}`;
+    }
+
+    // --- 项目增删改查 ---
+    function openCreateModal() {
+        if (!modalProject) {
+            alert('项目模态框未初始化');
+            return;
+        }
+        
+        currentEditingProjectId = null;
+        document.getElementById('pId').value = '';
+        document.getElementById('pTitle').value = '';
+        document.getElementById('cTitle').value = '';
+        document.getElementById('pSubTitle').value = '';
+        document.getElementById('pTags').value = '';
+        document.getElementById('pScript').value = '';
+        document.getElementById('pTime').value = '';
+        document.getElementById('modalTitle').innerText = "新建项目";
+        modalProject.show();
+    }
+
+    function editProject(pid) {
+        if (!modalProject) {
+            alert('项目模态框未初始化');
+            return;
+        }
+        
+        const p = projectsData.find(x => x.id === pid);
+        if(!p) return;
+        currentEditingProjectId = pid;
+        document.getElementById('pId').value = p.id;
+        document.getElementById('cTitle').value = p.title || '';
+        document.getElementById('pTitle').value = p.canvas_title || '';
+        document.getElementById('pSubTitle').value = p.sub_title || '';
+        document.getElementById('pTags').value = p.tags || '';
+        document.getElementById('pScript').value = p.script || '';
+        document.getElementById('pTime').value = p.publish_time || '';
+        document.getElementById('modalTitle').innerText = "编辑项目";
+        modalProject.show();
+    }
+
+    async function saveProject() {
+        const pid = document.getElementById('pId').value;
+        const payload = {
+            title: document.getElementById('cTitle').value,
+            canvas_title: document.getElementById('pTitle').value,
+            sub_title: document.getElementById('pSubTitle').value,
+            tags: document.getElementById('pTags').value,
+            script: document.getElementById('pScript').value,
+            publish_time: document.getElementById('pTime').value
+        };
+        
+        // 如果是新建，需要 map 到 CreateReq 字段
+        if (!pid) {
+            // 新建时，确保 main_title 对应 title
+            payload.main_title = payload.title; 
+        }
+
+        let url = '/api/projects';
+        let method = 'POST';
+        
+        if (pid) {
+            url = `/api/projects/${pid}`;
+            method = 'PUT';
+        }
+        
+        const res = await fetch(url, {
+            method: method,
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        
+        if (res.ok) {
+            if (modalProject) {
+                modalProject.hide();
+            }
+            loadProjects();
+        } else {
+            alert("保存失败");
+        }
+    }
+
+    async function deleteProject(pid) {
+        if(!confirm("确定删除吗？")) return;
+        await fetch(`/api/projects/${pid}`, {method: 'DELETE'});
+        loadProjects();
+    }
+    
+    // --- 关键功能：自动生成 ---
+    async function batchAutoGenerate() {
+        if(!confirm("确定要自动生成所有草稿项目吗？\n这将分析文案并生成视频。")) return;
+        
+        const btn = document.querySelector('button[onclick="batchAutoGenerate()"]');
+        const originText = btn.innerHTML;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> 处理中...`;
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/batch_generate', { method: 'POST' });
+            const d = await res.json();
+            alert(d.msg);
+            // 简单的轮询刷新，实际可用 WebSocket
+            setTimeout(loadProjects, 2000); 
+        } catch(e) {
+            alert("请求失败: " + e);
+        } finally {
+            btn.innerHTML = originText;
+            btn.disabled = false;
+        }
+    }
+
+    // --- 关键功能：发布 ---
+    async function publishProject(pid) {
+        if(!confirm("确认发布？这将锁定项目状态。")) return;
+        await fetch(`/api/projects/${pid}/publish`, {method: 'POST'});
+        loadProjects();
+    }
+
+    // ==========================================
+    //       Canvas 编辑器逻辑 (合并自 canvas.html)
+    // ==========================================
+    
+    // 状态
+    const cvLayers = {
+        bg: { img: null, width: 1272, height: 1714 },
+        main: { text: "", x: 636, y: 440, size: 175, color: "#fff", stroke: "#000", weight: "bold" },
+        sub:  { text: "", x: 636, y: 640, size: 70,  color: "#fff", stroke: "#000", weight: "normal" }
+    };
+    let cvCtx = null;
+    let cvCanvas = null;
+    let isDragging = null;
+    let dragStart = { x: 0, y: 0 };
+    const SNAP_THRESHOLD = 15;
+    let currentCanvasPid = null;
+
+    function initCanvasLogic() {
+        cvCanvas = document.getElementById('editorCanvas');
+        cvCtx = cvCanvas.getContext('2d');
+        
+        // 绑定输入事件
+        bindCvInput('cvMainText', 'main', 'text');
+        bindCvInput('cvMainSize', 'main', 'size', true);
+        bindCvInput('cvMainColor', 'main', 'color');
+        
+        bindCvInput('cvSubText', 'sub', 'text');
+        bindCvInput('cvSubSize', 'sub', 'size', true);
+        bindCvInput('cvSubColor', 'sub', 'color');
+        
+        document.getElementById('cvBgInput').addEventListener('change', handleBgUpload);
+        
+        // Canvas 鼠标事件
+        cvCanvas.addEventListener('mousedown', handleCvMouseDown);
+        window.addEventListener('mousemove', handleCvMouseMove); // window级监听防脱出
+        window.addEventListener('mouseup', handleCvMouseUp);
+        
+        // Modal 显示时重绘
+        document.getElementById('coverModal').addEventListener('shown.bs.modal', () => {
+             resizeCanvas(cvLayers.bg.width, cvLayers.bg.height);
+             cvRender();
+        });
+    }
+
+    function openCoverEditor(pid) {
+        if (!modalCover) {
+            alert('封面编辑模态框未初始化');
+            return;
+        }
+        
+        currentCanvasPid = pid;
+        const p = projectsData.find(x => x.id === pid);
+        
+        document.getElementById('cvProjectTitle').innerText = p.title;
+        
+        // 载入数据
+        cvLayers.main.text = p.canvas_title || "输入主标题";
+        cvLayers.sub.text = p.sub_title || "输入副标题";
+        
+        // 更新 UI
+        document.getElementById('cvMainText').value = cvLayers.main.text;
+        document.getElementById('cvSubText').value = cvLayers.sub.text;
+        
+        // 尝试加载现有背景图 (如果有) - 此处简化为重置或加载随机图
+        // 如果项目已有 cover_path 且不是 placeholder，理论上可以加载，但涉及 CORS
+        // 这里默认用 Demo 图或空白
+        loadRandomBg();
+        
+        modalCover.show();
+    }
+
+    function bindCvInput(id, layer, key, isNumber = false) {
+        document.getElementById(id).addEventListener('input', (e) => {
+            cvLayers[layer][key] = isNumber ? parseInt(e.target.value) : e.target.value;
+            cvRender();
+        });
+    }
+
+    function handleBgUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (evt) => createCvImg(evt.target.result);
+        reader.readAsDataURL(file);
+    }
+
+    function loadRandomBg() {
+        createCvImg("/static/canvas.jpg");
+    }
+
+    function createCvImg(src) {
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.onload = () => {
+            cvLayers.bg.img = img;
+            resizeCanvas(img.width, img.height);
+            // 重置文字位置
+            cvLayers.main.x = img.width / 2;
+            cvLayers.main.y = img.height / 2 - 150;
+            cvLayers.sub.x = img.width / 2;
+            cvLayers.sub.y = img.height / 2 + 20;
+            cvRender();
+        };
+        img.src = src;
+    }
+
+    function resizeCanvas(w, h) {
+        cvLayers.bg.width = w;
+        cvLayers.bg.height = h;
+        // 限制显示尺寸，防止Modal撑爆
+        // 实际渲染尺寸保持高清，CSS控制显示
+        cvCanvas.width = w;
+        cvCanvas.height = h;
+        
+        // 简单的自适应缩放显示逻辑
+        const container = document.querySelector('.cv-workspace');
+        if(container) {
+            const maxWidth = container.clientWidth - 40;
+            const maxHeight = container.clientHeight - 40;
+            const scale = Math.min(maxWidth / w, maxHeight / h, 1);
+            cvCanvas.style.width = `${w * scale}px`;
+            cvCanvas.style.height = `${h * scale}px`;
+        }
+    }
+
+    function cvRender() {
+        const w = cvLayers.bg.width;
+        const h = cvLayers.bg.height;
+        cvCtx.clearRect(0, 0, w, h);
+
+        // 背景
+        if (cvLayers.bg.img) {
+            cvCtx.drawImage(cvLayers.bg.img, 0, 0, w, h);
+        } else {
+            cvCtx.fillStyle = "#eee";
+            cvCtx.fillRect(0, 0, w, h);
+        }
+
+        // 辅助线
+        if (isDragging) {
+            cvCtx.beginPath();
+            cvCtx.lineWidth = 2;
+            cvCtx.strokeStyle = "#00FFFF";
+            cvCtx.moveTo(w / 2, 0); cvCtx.lineTo(w / 2, h); // 垂直中线
+            cvCtx.moveTo(0, h / 2); cvCtx.lineTo(w, h / 2); // 水平中线
+            cvCtx.stroke();
+        }
+
+        // 文字
+        ['main', 'sub'].forEach(key => {
+            const l = cvLayers[key];
+            if (!l.text) return;
+            cvCtx.save();
+            cvCtx.font = `${l.weight} ${l.size}px "Microsoft YaHei", sans-serif`;
+            cvCtx.fillStyle = l.color;
+            cvCtx.strokeStyle = l.stroke;
+            cvCtx.lineWidth = l.size / 20;
+            cvCtx.textAlign = "center";
+            cvCtx.textBaseline = "middle";
+            cvCtx.lineJoin = "round";
+            
+            // 简单处理多行 (这里简化为单行渲染，原代码有多行支持可保留)
+            cvCtx.strokeText(l.text, l.x, l.y);
+            cvCtx.fillText(l.text, l.x, l.y);
+            cvCtx.restore();
+        });
+    }
+
+    // 简单的拖拽检测
+    function getCvMousePos(evt) {
+        const rect = cvCanvas.getBoundingClientRect();
+        // 因为Canvas被CSS缩放了，所以需要计算比例
+        const scaleX = cvCanvas.width / rect.width;
+        const scaleY = cvCanvas.height / rect.height;
+        return {
+            x: (evt.clientX - rect.left) * scaleX,
+            y: (evt.clientY - rect.top) * scaleY
+        };
+    }
+
+    function handleCvMouseDown(e) {
+        const pos = getCvMousePos(e);
+        // 简单碰撞检测
+        ['sub', 'main'].forEach(key => {
+            const l = cvLayers[key];
+            // 粗略估算点击区域
+            if (Math.abs(pos.y - l.y) < l.size && Math.abs(pos.x - l.x) < 400) {
+                isDragging = key;
+                dragStart = pos;
+            }
+        });
+    }
+
+    function handleCvMouseMove(e) {
+        if (!isDragging) return;
+        const pos = getCvMousePos(e);
+        const dx = pos.x - dragStart.x;
+        const dy = pos.y - dragStart.y;
+        
+        let newX = cvLayers[isDragging].x + dx;
+        let newY = cvLayers[isDragging].y + dy;
+        
+        // 磁吸
+        if (Math.abs(newX - cvLayers.bg.width/2) < SNAP_THRESHOLD) newX = cvLayers.bg.width/2;
+        if (Math.abs(newY - cvLayers.bg.height/2) < SNAP_THRESHOLD) newY = cvLayers.bg.height/2;
+
+        cvLayers[isDragging].x = newX;
+        cvLayers[isDragging].y = newY;
+        dragStart = pos;
+        cvRender();
+    }
+
+    function handleCvMouseUp() {
+        isDragging = null;
+        cvRender(); // 清楚辅助线
+    }
+
+    // --- 核心：保存封面到服务器 ---
+    async function saveCoverCanvas() {
+        if (!currentCanvasPid) return;
+        
+        // 导出图片 DataURL
+        const dataUrl = cvCanvas.toDataURL('image/png', 0.8);
+        
+        // 上传
+        try {
+            const res = await fetch('/api/cover/upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    project_id: currentCanvasPid,
+                    image_data: dataUrl
+                })
+            });
+            const d = await res.json();
+            if (d.status === 'ok') {
+                if (modalCover) {
+                    modalCover.hide();
+                }
+                loadProjects(); // 刷新列表显示新封面
+            } else {
+                alert("封面上传失败: " + d.msg);
+            }
+        } catch (e) {
+            alert("网络错误");
+        }
+    }
+</script>

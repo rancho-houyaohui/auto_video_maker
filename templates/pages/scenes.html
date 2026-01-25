@@ -1,0 +1,83 @@
+<div id="page-scenes" class="page-view active">
+    <div class="v-card">
+        <label class="fw-bold mb-2">输入文案</label>
+        <textarea id="scriptInput" class="v-input mb-3" rows="4" placeholder="在此粘贴视频文案...">这绝对是2026年最疯狂的风口！很多人每天都在焦虑，其实是因为没有掌握底层逻辑。</textarea>
+
+        <button onclick="analyzeScript(this)" class="v-btn w-100 fw-bold py-2">🧠 AI 拆解分镜</button>
+    </div>
+
+    <div id="editorArea" style="display:none;">
+        <div class="d-flex justify-content-between align-items-center mb-3 sticky-top bg-light py-2 shadow-sm px-3 rounded border" style="z-index:10; top:0;">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-secondary" id="sceneCount">0</span>
+                <div class="btn-group">
+                    <button onclick="applyGlobalVoice()" class="btn btn-sm btn-outline-secondary">应用全局语音</button>
+                    <button onclick="applyGlobalPadding()" class="btn btn-sm btn-outline-secondary">应用全局停顿</button>
+                </div>
+                <button onclick="manualSave()" class="btn btn-sm btn-outline-primary" id="btnSaveProject" style="display:none;">💾 保存进度</button>
+            </div>
+            <button onclick="openRenderModal()" class="btn btn-success fw-bold px-4">🚀 开始渲染</button>
+        </div>
+        
+        <div id="scenesContainer"></div>
+        
+        <div class="text-center mt-5 mb-5 text-muted small">--- 到底了 ---</div>
+    </div>
+</div>
+<!-- 视频选择 Modal -->
+<div class="modal fade" id="videoModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="btn-group me-3">
+                    <button class="btn btn-outline-primary active" id="btnLocalView" onclick="switchVideoView('local')">📂 本地</button>
+                    <button class="btn btn-outline-primary" id="btnOnlineView" onclick="switchVideoView('online')">🌐 在线</button>
+                </div>
+                <h5 class="modal-title">选择素材</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="localControls" class="mb-3"><input type="text" id="localSearchInput" class="form-control" placeholder="🔍 筛选..." oninput="filterLocalVideos()"></div>
+                <div id="onlineControls" class="mb-3" style="display:none;">
+                    <div class="input-group"><input type="text" id="onlineSearchInput" class="form-control" placeholder="Pexels 英文词..."><button class="btn btn-primary" onclick="searchOnlineVideo(this)">🔍</button></div>
+                </div>
+                <div id="localVideoGrid" class="row g-3" style="max-height: 500px; overflow-y: auto;">
+                    {% for v in videos %}
+                    <div class="col-md-3 col-6 video-select-item" data-name="{{v}}">
+                        <div class="card h-100 shadow-sm">
+                            <video src="/static/video/{{v}}" class="card-img-top" style="height:100px; object-fit:cover" muted onmouseover="this.play()" onmouseout="this.pause()"></video>
+                            <div class="card-body p-2 text-center">
+                                <div class="small text-truncate mb-2" title="{{v}}">{{v}}</div>
+                                <button class="btn btn-sm btn-outline-primary w-100" onclick="selectVideo({type:'local', src:'/static/video/{{v}}', name:'{{v}}'})">✅ 选择</button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div id="onlineVideoGrid" class="row g-3" style="max-height: 500px; overflow-y: auto; display:none;"><div class="text-center py-5 text-muted">请搜索</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 渲染进度 Modal -->
+<div class="modal fade" id="renderModal" data-bs-backdrop="static" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">🚀 渲染控制台</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" id="closeRenderBtn" style="display:none"></button>
+            </div>
+            <div class="modal-body">
+                <div id="logContainer" class="log-box mb-3"></div>
+                <div id="resultArea" style="display:none" class="text-center">
+                    <div class="alert alert-success fw-bold">✅ 渲染完成！</div>
+                    <video id="finalVideoPlayer" controls class="w-100 mb-3 bg-black" style="max-height: 400px; border-radius: 8px;"></video>
+                    <div class="d-flex justify-content-center gap-3" id="actionBtnContainer">
+                        <a id="finalDownloadBtn" href="#" class="btn btn-primary btn-lg px-4" download>📥 下载视频</a>
+                        <button class="btn btn-outline-secondary btn-lg px-4" data-bs-dismiss="modal">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

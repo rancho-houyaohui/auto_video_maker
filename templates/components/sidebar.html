@@ -1,0 +1,114 @@
+<style>
+    /* 侧边栏选中状态样式 */
+    .nav-item.active {
+        background-color: rgba(79, 70, 229, 0.1);
+        border-left: 3px solid #4f46e5;
+        font-weight: 600;
+    }
+    
+    .sub-item.active {
+        background-color: rgba(79, 70, 229, 0.1);
+        border-left: 3px solid #4f46e5;
+        font-weight: 600;
+    }
+    
+    /* 子菜单展开/收起动画 */
+    .sub-menu {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+    }
+    
+    .sub-menu.open {
+        max-height: 200px;
+    }
+    
+    /* 子菜单项样式 */
+    .sub-item {
+        padding: 8px 16px 8px 32px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .sub-item:hover {
+        background-color: rgba(79, 70, 229, 0.05);
+    }
+</style>
+
+<div class="sidebar">
+    <div class="brand">
+        <i class="fa-solid fa-layer-group"></i> AI Director
+    </div>
+    
+    <div class="nav-item active" onclick="switchPage('scenes', 'config')">
+        <span><i class="fa-solid fa-pen-nib me-2"></i>分镜拆解</span>
+    </div>
+
+    <div class="nav-item" onclick="toggleSubMenu('resSubMenu')">
+        <span><i class="fa-solid fa-box-open me-2"></i>资源库</span>
+        <i class="fa-solid fa-chevron-down small"></i>
+    </div>
+    <div class="sub-menu" id="resSubMenu">
+        <div class="sub-item active" onclick="switchPage('res-video', 'none')">📺 视频素材</div>
+        <div class="sub-item" onclick="switchPage('res-sfx', 'none')">🔊 音效素材</div>
+        <div class="sub-item" onclick="switchPage('res-bgm', 'none')">🎵 背景音乐</div>
+    </div>
+
+    <div class="nav-item" onclick="switchPage('projects', 'config')">
+        <span><i class="fa-solid fa-folder-open me-2"></i>项目管理</span>
+    </div>
+
+    <div class="nav-item" onclick="switchPage('canvas', 'none')">
+        <span><i class="fa-solid fa-image me-2"></i>封面工坊</span>
+    </div>
+
+    <div class="mt-auto">
+        <div class="nav-item" onclick="switchPage('help', 'none')">
+            <span><i class="fa-regular fa-circle-question me-2"></i>帮助</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleSubMenu(id) {
+        const subMenu = document.getElementById(id);
+        if (subMenu) {
+            subMenu.classList.toggle('open');
+        }
+    }
+    
+    // 更新菜单项选中状态
+    function updateActiveNavItem(pageId) {
+        // 移除所有 nav-item 的 active 类
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        // 移除所有 sub-item 的 active 类
+        document.querySelectorAll('.sub-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        // 根据 pageId 设置对应的 active 类
+        if (pageId === 'scenes') {
+            document.querySelectorAll('.nav-item')[0].classList.add('active');
+        } else if (pageId === 'projects') {
+            document.querySelectorAll('.nav-item')[2].classList.add('active');
+        } else if (pageId === 'canvas') {
+            document.querySelectorAll('.nav-item')[3].classList.add('active');
+        } else if (pageId === 'help') {
+            document.querySelectorAll('.nav-item')[4].classList.add('active');
+        } else if (pageId.startsWith('res-')) {
+            // 资源库子项
+            document.querySelectorAll('.nav-item')[1].classList.add('active');
+            const resType = pageId.split('-')[1];
+            if (resType === 'video') {
+                document.querySelectorAll('.sub-item')[0].classList.add('active');
+            } else if (resType === 'sfx') {
+                document.querySelectorAll('.sub-item')[1].classList.add('active');
+            } else if (resType === 'bgm') {
+                document.querySelectorAll('.sub-item')[2].classList.add('active');
+            }
+        }
+    }
+</script>

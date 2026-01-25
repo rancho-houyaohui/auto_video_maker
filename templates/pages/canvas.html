@@ -1,0 +1,535 @@
+<style>
+    /* --- 左侧设置栏 --- */
+        .canvas-view .modal-body{
+            display: flex;
+        }
+        .canvas-view .sidebar {
+            width: 380px;
+            background: var(--panel-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            z-index: 20;
+            box-shadow: 4px 0 24px rgba(0,0,0,0.05);
+            padding: 0;
+        }
+
+        .canvas-view .sidebar-content {
+            padding: 0 20px 20px 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .canvas-view .section {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .canvas-view .section-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #4b5563;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+        }
+
+        .canvas-view .section-title::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 14px;
+            margin-right: 8px;
+            border-radius: 2px;
+        }
+
+        /* 表单控件 */
+        .canvas-view .form-group { margin-bottom: 10px; }
+        .canvas-view .label { display: block; font-size: 0.85rem; color: #6b7280; margin-bottom: 4px; }
+        
+        .canvas-view .input[type="text"], .canvas-view input[type="number"], select, textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+        
+        .canvas-view .input[type="text"]:focus, .canvas-view textarea:focus { outline: none; border-color: var(--primary-color); }
+
+        .canvas-view .row { display: flex; gap: 10px; }
+        .canvas-view .col { flex: 1; }
+
+        .canvas-view input[type="color"] {
+            width: 100%; height: 38px; padding: 2px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer;
+        }
+
+        /* 底部按钮区 */
+        .canvas-view .footer-actions {
+            padding: 20px;
+            background: #fff;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .canvas-view .btn {
+            display: block; width: 100%; padding: 12px; border: none; border-radius: 6px;
+            font-size: 15px; font-weight: 600; cursor: pointer; text-align: center;
+            background-color: var(--primary-color); color: white;
+        }
+        .canvas-view .btn:hover { opacity: 0.9; }
+        .canvas-view .btn-secondary { background-color: #fff; border: 1px solid var(--border-color); color: #374151; margin-bottom: 10px; }
+        .canvas-view .btn-secondary:hover { background-color: #f9fafb; }
+
+        /* --- 右侧画布区 --- */
+        .canvas-view .workspace {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+            position: relative;
+        }
+        
+        .canvas-view .canvas-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            overflow: hidden;
+        }
+
+        .canvas-view .canvas {
+            box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.25);
+            max-width: 100%;
+            max-height: 100%;
+            background: white;
+        }
+
+        .canvas-view .info-bar {
+            padding: 8px 20px;
+            background: rgba(255,255,255,0.8);
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+        }
+</style>
+<div id="page-canvas" class="page-view canvas-view">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="m-0 text-white fw-light">封面制作</h4>
+    </div>
+
+    <div class="modal-dialog modal-fullscreen-lg-down"> <!-- 响应式全屏 -->
+        <div class="modal-content">
+            <div class="modal-body">
+                
+                <!-- 画布 -->
+                <div class="workspace">
+                    <div class="canvas-container">
+                        <canvas id="editorCanvas1"></canvas>
+                    </div>
+                    <div class="info-bar">
+                        <span id="canvasSizeInfo1">画布尺寸: - x -</span>
+                        <span>💡 提示：拖动文字靠近中心会自动吸附</span>
+                    </div>
+                </div>
+
+                <div class="sidebar" style="background: var(--bg-panel); color: var(--text-main);">
+                    <div class="sidebar-content" style="padding: 20px;">
+                        <!-- 全局设置 -->
+                        <div class="v-card">
+                            <div class="section-title">底图与画布</div>
+                            <div class="form-group">
+                                <label class="small text-muted mb-2 d-block">上传背景图 (自动调整画布大小)</label>
+                                <input type="file" class="v-input" id="bgInput1" accept="image/*">
+                            </div>
+                            <button class="v-btn v-btn-outline mt-2" onclick="loadDemoImage()">🎲 加载演示图片</button>
+                        </div>
+
+                        <!-- 主标题设置 -->
+                        <div class="v-card">
+                            <div class="section-title">主标题</div>
+                            <div class="form-group">
+                                <textarea class="v-input" id="mainText1" rows="2">这里是主标题文案</textarea>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col">
+                                    <label class="small text-muted mb-1 d-block">字号</label>
+                                    <input type="number" class="v-input" id="mainSize1" value="120">
+                                </div>
+                                <div class="col">
+                                    <label class="small text-muted mb-1 d-block">字重</label>
+                                    <select class="v-select" id="mainWeight1">
+                                        <option value="normal">正常</option>
+                                        <option value="bold" selected>粗体</option>
+                                        <option value="900">超粗</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row g-2 mt-2">
+                                <div class="col">
+                                    <label class="small text-muted mb-1 d-block">字体颜色</label>
+                                    <input type="color" class="v-input p-0" style="height:38px" id="mainColor1" value="#FFFFFF">
+                                </div>
+                                <div class="col">
+                                    <label class="small text-muted mb-1 d-block">描边颜色</label>
+                                    <input type="color" class="v-input p-0" style="height:38px" id="mainStroke1" value="#000000">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 副标题设置 -->
+                        <div class="v-card">
+                            <div class="section-title">副标题</div>
+                            <div class="form-group">
+                                <textarea class="v-input" id="subText1" rows="2">—— 拖动文字会有磁吸效果 ——</textarea>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col">
+                                    <label class="small text-muted mb-1 d-block">字号</label>
+                                    <input type="number" class="v-input" id="subSize1" value="60">
+                                </div>
+                                <div class="col">
+                                    <label class="small text-muted mb-1 d-block">字重</label>
+                                    <select class="v-select" id="subWeight1">
+                                        <option value="normal" selected>正常</option>
+                                        <option value="bold">粗体</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row g-2 mt-2">
+                                <div class="col">
+                                    <label class="small text-muted mb-1 d-block">字体颜色</label>
+                                    <input type="color" class="v-input p-0" style="height:38px" id="subColor1" value="#FFD700">
+                                </div>
+                                <div class="col">
+                                    <label class="small text-muted mb-1 d-block">描边颜色</label>
+                                    <input type="color" class="v-input p-0" style="height:38px" id="subStroke1" value="#000000">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="footer-actions" style="padding: 20px; background: var(--bg-panel); border-top: 1px solid var(--border);">
+                        <div class="form-group">
+                            <label class="small text-muted mb-2 d-block">导出倍率 (高清放大)</label>
+                            <select class="v-select" id="exportScale1">
+                                <option value="1">1x (原图大小)</option>
+                                <option value="1.5">1.5x</option>
+                                <option value="2">2x (超清)</option>
+                            </select>
+                        </div>
+                        <button class="v-btn mt-2" onclick="exportImage()">导出封面图</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 使用立即执行函数表达式（IIFE）避免变量冲突
+    (function() {
+    // --- 1. 状态管理 ---
+    const layers = {
+        bg: { img: null, width: 1920, height: 1080 }, // 默认尺寸
+        main: { text: "", x: 960, y: 440, size: 120, color: "#fff", stroke: "#000", weight: "bold" },
+        sub:  { text: "", x: 960, y: 640, size: 60,  color: "#FFD700", stroke: "#000", weight: "normal" }
+    };
+
+    // 辅助线状态
+    const guides = {
+        showX: false, // 是否显示垂直中线
+        showY: false  // 是否显示水平中线
+    };
+
+    const canvas = document.getElementById('editorCanvas1');
+    const ctx = canvas.getContext('2d');
+    let isDragging = null; 
+    let dragStart = { x: 0, y: 0 };
+    const SNAP_THRESHOLD = 15; // 吸附阈值（像素）
+
+    // --- 2. 初始化与绑定 ---
+    function init() {
+        // 绑定输入框事件
+        bindInput('mainText1', 'main', 'text');
+        bindInput('mainSize1', 'main', 'size', true);
+        bindInput('mainColor1', 'main', 'color');
+        bindInput('mainStroke1', 'main', 'stroke');
+        bindInput('mainWeight1', 'main', 'weight');
+
+        bindInput('subText1', 'sub', 'text');
+        bindInput('subSize1', 'sub', 'size', true);
+        bindInput('subColor1', 'sub', 'color');
+        bindInput('subStroke1', 'sub', 'stroke');
+        bindInput('subWeight1', 'sub', 'weight');
+
+        document.getElementById('bgInput1').addEventListener('change', handleImageUpload);
+        canvas.addEventListener('mousedown', handleMouseDown);
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+
+        syncUI();
+        resizeCanvas(1920, 1080);
+        loadDemoImage();
+    }
+
+    function bindInput(id, layer, key, isNumber = false) {
+        document.getElementById(id).addEventListener('input', (e) => {
+            layers[layer][key] = isNumber ? parseInt(e.target.value) : e.target.value;
+            render();
+        });
+    }
+
+    function syncUI() {
+        document.getElementById('mainText1').value = layers.main.text;
+        document.getElementById('mainSize1').value = layers.main.size;
+        document.getElementById('subText1').value = layers.sub.text;
+    }
+
+    // --- 3. 核心逻辑：图片加载 ---
+    function handleImageUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (evt) => createImg(evt.target.result);
+        reader.readAsDataURL(file);
+    }
+
+    function createImg(src) {
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.onload = () => {
+            layers.bg.img = img;
+            resizeCanvas(img.width, img.height);
+            // 重置文字位置到中心
+            layers.main.x = img.width / 2;
+            layers.main.y = img.height / 2 - 50;
+            layers.sub.x = img.width / 2;
+            layers.sub.y = img.height / 2 + 100;
+            render();
+        };
+        img.src = src;
+    }
+
+    function loadDemoImage() {
+        createImg("https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=1200&auto=format&fit=crop");
+        layers.main.text = "2026 前端全栈开发";
+        layers.sub.text = "从入门到精通实战指南";
+        document.getElementById('mainText1').value = layers.main.text;
+        document.getElementById('subText1').value = layers.sub.text;
+    }
+
+    function resizeCanvas(w, h) {
+        layers.bg.width = w;
+        layers.bg.height = h;
+        canvas.width = w;
+        canvas.height = h;
+        document.getElementById('canvasSizeInfo1').textContent = `画布尺寸: ${w} x ${h} px`;
+    }
+
+    // --- 4. 核心逻辑：渲染 (支持传入 context 以便导出) ---
+    function render(targetCtx = ctx, scale = 1) {
+        const w = layers.bg.width;
+        const h = layers.bg.height;
+
+        targetCtx.clearRect(0, 0, w, h);
+
+        // 1. 绘制背景
+        if (layers.bg.img) {
+            targetCtx.drawImage(layers.bg.img, 0, 0, w, h);
+        } else {
+            targetCtx.fillStyle = "#eee";
+            targetCtx.fillRect(0, 0, w, h);
+            targetCtx.fillStyle = "#ccc";
+            targetCtx.font = "30px sans-serif";
+            targetCtx.textAlign = "center";
+            targetCtx.fillText("请上传底图", w/2, h/2);
+        }
+
+        // 2. 绘制辅助线 (仅在非导出且拖拽时显示)
+        if (targetCtx === ctx && isDragging) {
+            targetCtx.save();
+            targetCtx.beginPath();
+            targetCtx.lineWidth = 1;
+            targetCtx.strokeStyle = "#00FFFF"; // 亮青色辅助线
+            
+            // 垂直中线
+            if (guides.showX) {
+                targetCtx.moveTo(w / 2, 0);
+                targetCtx.lineTo(w / 2, h);
+            }
+            // 水平中线
+            if (guides.showY) {
+                targetCtx.moveTo(0, h / 2);
+                targetCtx.lineTo(w, h / 2);
+            }
+            targetCtx.stroke();
+            targetCtx.restore();
+        }
+
+        // 3. 绘制文字图层函数
+        const drawTextLayer = (layerKey) => {
+            const l = layers[layerKey];
+            if (!l.text) return;
+
+            targetCtx.save();
+            targetCtx.font = `${l.weight} ${l.size}px "Microsoft YaHei", sans-serif`;
+            targetCtx.fillStyle = l.color;
+            targetCtx.strokeStyle = l.stroke;
+            targetCtx.lineWidth = l.size / 15; 
+            targetCtx.textAlign = "center";
+            targetCtx.textBaseline = "middle";
+            targetCtx.lineJoin = "round";
+
+            const lines = l.text.split('\n');
+            const lineHeight = l.size * 1.3;
+            const totalTextH = lines.length * lineHeight;
+            
+            lines.forEach((line, index) => {
+                const lineY = l.y - (totalTextH / 2) + (index * lineHeight) + (lineHeight/2);
+                targetCtx.strokeText(line, l.x, lineY);
+                targetCtx.fillText(line, l.x, lineY);
+
+                // 选中框 (辅助视觉)
+                if (targetCtx === ctx && isDragging === layerKey) {
+                    targetCtx.lineWidth = 2;
+                    targetCtx.strokeStyle = "rgba(13, 110, 253, 0.5)";
+                    targetCtx.setLineDash([5, 5]);
+                    const metrics = targetCtx.measureText(line);
+                    targetCtx.strokeRect(l.x - metrics.width/2 - 10, lineY - l.size/2, metrics.width + 20, l.size);
+                }
+            });
+
+            targetCtx.restore();
+        };
+
+        drawTextLayer('main');
+        drawTextLayer('sub');
+    }
+
+    // --- 5. 交互逻辑 (增加磁吸算法) ---
+    function getMousePos(evt) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        return {
+            x: (evt.clientX - rect.left) * scaleX,
+            y: (evt.clientY - rect.top) * scaleY
+        };
+    }
+
+    function hitTest(pos) {
+        const layersToCheck = ['sub', 'main'];
+        for (let key of layersToCheck) {
+            const l = layers[key];
+            const lines = l.text.split('\n').length;
+            const h = l.size * lines * 1.2;
+            // 宽泛的命中判定
+            if (Math.abs(pos.y - l.y) < h / 2 + 20 && Math.abs(pos.x - l.x) < 500) { 
+                return key;
+            }
+        }
+        return null;
+    }
+
+    function handleMouseDown(e) {
+        const pos = getMousePos(e);
+        const hitLayer = hitTest(pos);
+        if (hitLayer) {
+            isDragging = hitLayer;
+            dragStart = { x: pos.x, y: pos.y };
+            canvas.style.cursor = 'grabbing';
+            render(); 
+        }
+    }
+
+    function handleMouseMove(e) {
+        if (!isDragging) {
+            const pos = getMousePos(e);
+            const hit = hitTest(pos);
+            canvas.style.cursor = hit ? 'grab' : 'default';
+            return;
+        }
+
+        const pos = getMousePos(e);
+        const dx = pos.x - dragStart.x;
+        const dy = pos.y - dragStart.y;
+
+        // 计算新坐标
+        let newX = layers[isDragging].x + dx;
+        let newY = layers[isDragging].y + dy;
+
+        // --- 磁吸逻辑开始 ---
+        const centerX = layers.bg.width / 2;
+        const centerY = layers.bg.height / 2;
+
+        // 重置辅助线状态
+        guides.showX = false;
+        guides.showY = false;
+
+        // 水平吸附
+        if (Math.abs(newX - centerX) < SNAP_THRESHOLD) {
+            newX = centerX; // 强制吸附到中心
+            guides.showX = true; // 显示辅助线
+        }
+
+        // 垂直吸附
+        if (Math.abs(newY - centerY) < SNAP_THRESHOLD) {
+            newY = centerY; // 强制吸附到中心
+            guides.showY = true; // 显示辅助线
+        }
+        // --- 磁吸逻辑结束 ---
+
+        // 应用坐标更新
+        layers[isDragging].x = newX;
+        layers[isDragging].y = newY;
+
+        dragStart = { x: pos.x, y: pos.y };
+        render();
+    }
+
+    function handleMouseUp() {
+        if (isDragging) {
+            isDragging = null;
+            // 拖拽结束时隐藏辅助线
+            guides.showX = false;
+            guides.showY = false;
+            canvas.style.cursor = 'default';
+            render();
+        }
+    }
+
+    // --- 6. 导出逻辑 ---
+    function exportImage() {
+        const scale = parseFloat(document.getElementById('exportScale1').value);
+        const w = layers.bg.width;
+        const h = layers.bg.height;
+
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = w * scale;
+        offCanvas.height = h * scale;
+        const offCtx = offCanvas.getContext('2d');
+
+        offCtx.scale(scale, scale);
+        // 导出时不显示辅助线
+        isDragging = null; 
+        render(offCtx, scale);
+
+        const link = document.createElement('a');
+        link.download = `cover_${Date.now()}.png`;
+        link.href = offCanvas.toDataURL('image/png', 1.0);
+        link.click();
+    }
+
+    init();
+    })();
+</script>
