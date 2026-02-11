@@ -7,6 +7,7 @@ import os
 import random
 import json
 import asyncio
+import time
 import requests
 import ollama
 import edge_tts
@@ -1014,6 +1015,10 @@ class VideoEngine:
         global_used_paths = set() 
         loop = asyncio.get_running_loop()
         
+        # 并发控制信号量，限制同时处理的任务数量
+        # 防止同时打开太多文件描述符
+        semaphore = asyncio.Semaphore(3)  # 最多同时处理3个任务
+        
         async def log(msg):
             print(msg)
             if log_callback: await log_callback(msg)
@@ -1244,21 +1249,52 @@ class VideoEngine:
                 scene_out = os.path.join(self.TEMP_DIR, f"scene_{idx}.mov")
                 
                 def write_segment():
-                    vc.write_videofile(
-                        scene_out, 
-                        fps=30, 
-                        preset="ultrafast", 
-                        logger=custom_logger, 
-                        codec="libx264", 
-                        audio_codec="pcm_s16le", 
-                        temp_audiofile=f"{self.TEMP_DIR}/temp_{idx}.wav", 
-                        remove_temp=True
-                    )
+                    max_retries = 3
+                    retry_delay = 2
+                    
+                    for attempt in range(max_retries):
+                        try:
+                            vc.write_videofile(
+                                scene_out, 
+                                fps=30, 
+                                preset="ultrafast", 
+                                logger=custom_logger, 
+                                codec="libx264", 
+                                audio_codec="pcm_s16le", 
+                                temp_audiofile=f"{self.TEMP_DIR}/temp_{idx}.wav", 
+                                remove_temp=True
+                            )
+                            break
+                        except OSError as e:
+                            if e.errno == 24:  # Too many open files
+                                if attempt < max_retries - 1:
+                                    print(f"⚠️ 文件描述符不足，等待 {retry_delay} 秒后重试 ({attempt + 1}/{max_retries})...")
+                                    time.sleep(retry_delay)
+                                    retry_delay *= 2  # 指数退避
+                                    continue
+                                else:
+                                    print(f"❌ 文件描述符不足，已达到最大重试次数")
+                                    raise
+                            else:
+                                raise
+                        except Exception as e:
+                            print(f"❌ 写入视频文件失败: {e}")
+                            raise
                 
-                await asyncio.to_thread(write_segment)
+                # 使用信号量控制并发，防止同时打开太多文件描述符
+                async with semaphore:
+                    await asyncio.to_thread(write_segment)
                 
                 vc.close()
                 combined_audio.close()
+                
+                # 清理音频剪辑对象，释放文件描述符
+                for audio_clip in scene_audio_clips:
+                    try:
+                        audio_clip.close()
+                    except:
+                        pass
+                
                 scene_files.append(scene_out)
                 current_time += scene_total_duration
 
@@ -1293,7 +1329,28 @@ class VideoEngine:
             temp_video_bgm = os.path.join(self.TEMP_DIR, "temp_with_bgm.mov")
             
             def write_bgm():
-                final_clip.write_videofile(temp_video_bgm, fps=30, codec="libx264", audio_codec="pcm_s16le", temp_audiofile="temp_final.wav", remove_temp=True, logger=custom_logger)
+                max_retries = 3
+                retry_delay = 2
+                
+                for attempt in range(max_retries):
+                    try:
+                        final_clip.write_videofile(temp_video_bgm, fps=30, codec="libx264", audio_codec="pcm_s16le", temp_audiofile="temp_final.wav", remove_temp=True, logger=custom_logger)
+                        break
+                    except OSError as e:
+                        if e.errno == 24:  # Too many open files
+                            if attempt < max_retries - 1:
+                                print(f"⚠️ 文件描述符不足，等待 {retry_delay} 秒后重试 ({attempt + 1}/{max_retries})...")
+                                time.sleep(retry_delay)
+                                retry_delay *= 2  # 指数退避
+                                continue
+                            else:
+                                print(f"❌ 文件描述符不足，已达到最大重试次数")
+                                raise
+                        else:
+                            raise
+                    except Exception as e:
+                        print(f"❌ 写入BGM视频失败: {e}")
+                        raise
             
             await asyncio.to_thread(write_bgm)
             final_clip.close()
